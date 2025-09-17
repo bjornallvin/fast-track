@@ -1,6 +1,11 @@
-export const calculateElapsedTime = (startTime: Date, targetDuration: number = 72): { hours: number; minutes: number; totalHours: number; percentage: number } => {
+export const calculateElapsedTime = (startTime: Date | null | undefined, targetDuration: number = 72): { hours: number; minutes: number; totalHours: number; percentage: number } => {
+  if (!startTime) {
+    return { hours: 0, minutes: 0, totalHours: 0, percentage: 0 };
+  }
+
   const now = new Date();
-  const diff = now.getTime() - startTime.getTime();
+  const start = new Date(startTime); // Ensure it's a Date object
+  const diff = now.getTime() - start.getTime();
   const totalHours = diff / (1000 * 60 * 60);
   const hours = Math.floor(totalHours);
   const minutes = Math.floor((totalHours - hours) * 60);

@@ -98,15 +98,39 @@ const CheckinForm: React.FC<CheckinFormProps> = ({ onSubmit, onClose }) => {
     value: number;
     onChange: (val: number) => void;
     metricKey: keyof typeof metricDescriptions;
-  }) => (
+  }) => {
+    // Tooltip descriptions for each metric
+    const tooltips = {
+      energy: "Your overall energy level and ability to perform daily activities",
+      hunger: "How strong your hunger sensations are (1 = no hunger, 10 = extreme hunger)",
+      mentalClarity: "Your ability to think clearly, focus, and concentrate",
+      mood: "Your emotional state and overall feeling of well-being",
+      physicalComfort: "Your physical comfort level, absence of pain or discomfort"
+    };
+
+    return (
     <div className="mb-5">
-      <label className="block text-sm font-medium text-gray-700 mb-2">
-        {label}: <span className="font-bold text-indigo-600 text-lg">{value}/10</span>
+      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+        <span className="flex items-center gap-1">
+          {label}
+          <span className="group relative inline-block">
+            <svg className="w-4 h-4 text-gray-400 cursor-help" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+            </svg>
+            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-normal w-48 z-10">
+              {tooltips[metricKey]}
+              <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
+                <div className="border-4 border-transparent border-t-gray-900"></div>
+              </div>
+            </div>
+          </span>
+        </span>
+        <span className="font-bold text-indigo-600 text-lg ml-auto">{value}/10</span>
       </label>
 
       {/* Description for current value */}
-      <div className="mb-2 p-2 bg-indigo-50 rounded-md">
-        <p className="text-xs text-indigo-700 font-medium">
+      <div className="mb-2 p-2 bg-indigo-50 dark:bg-indigo-900/30 rounded-md">
+        <p className="text-xs text-indigo-700 dark:text-indigo-400 font-medium">
           {metricDescriptions[metricKey][value as keyof typeof metricDescriptions[typeof metricKey]]}
         </p>
       </div>
@@ -117,11 +141,14 @@ const CheckinForm: React.FC<CheckinFormProps> = ({ onSubmit, onClose }) => {
         max="10"
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+        className="w-full h-2 bg-gray-200 dark:bg-gray-600 rounded-lg appearance-none cursor-pointer slider-thumb"
+        style={{
+          background: `linear-gradient(to right, rgb(79 70 229) 0%, rgb(79 70 229) ${(value - 1) * 11.11}%, rgb(229 231 235) ${(value - 1) * 11.11}%, rgb(229 231 235) 100%)`
+        }}
       />
 
       {/* Scale markers */}
-      <div className="flex justify-between text-xs text-gray-500 mt-1">
+      <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
         <span>1</span>
         <span>2</span>
         <span>3</span>
@@ -135,18 +162,26 @@ const CheckinForm: React.FC<CheckinFormProps> = ({ onSubmit, onClose }) => {
       </div>
 
       {/* Labels */}
-      <div className="flex justify-between text-xs text-gray-400 mt-1">
+      <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500 mt-1">
         <span>{metricKey === 'hunger' ? 'None' : 'Worst'}</span>
         <span className="text-center">Moderate</span>
         <span>{metricKey === 'hunger' ? 'Extreme' : 'Best'}</span>
       </div>
     </div>
   );
+  };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-        <h2 className="text-2xl font-bold text-gray-800 mb-6">Quick Check-in</h2>
+    <div
+      className="fixed inset-0 flex items-center justify-center p-4 z-50"
+      style={{ backgroundColor: 'rgba(0, 0, 0, 0.8)' }}
+      onClick={onClose}
+    >
+      <div
+        className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6">Quick Check-in</h2>
 
         <form onSubmit={handleSubmit}>
           <RatingSlider
@@ -185,13 +220,13 @@ const CheckinForm: React.FC<CheckinFormProps> = ({ onSubmit, onClose }) => {
           />
 
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Sleep Quality (last night)
             </label>
             <select
               value={formData.sleepQuality || ''}
               onChange={(e) => setFormData({ ...formData, sleepQuality: e.target.value ? Number(e.target.value) : undefined })}
-              className="w-full p-2 border border-gray-300 rounded-md"
+              className="w-full p-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md"
             >
               <option value="">Not tracked</option>
               {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((val) => (
@@ -203,7 +238,7 @@ const CheckinForm: React.FC<CheckinFormProps> = ({ onSubmit, onClose }) => {
           </div>
 
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Water Intake (glasses)
             </label>
             <input
@@ -212,7 +247,7 @@ const CheckinForm: React.FC<CheckinFormProps> = ({ onSubmit, onClose }) => {
               max="20"
               value={formData.waterIntake || ''}
               onChange={(e) => setFormData({ ...formData, waterIntake: e.target.value ? Number(e.target.value) : undefined })}
-              className="w-full p-2 border border-gray-300 rounded-md"
+              className="w-full p-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md"
               placeholder="Optional"
             />
           </div>
@@ -225,7 +260,7 @@ const CheckinForm: React.FC<CheckinFormProps> = ({ onSubmit, onClose }) => {
                 onChange={(e) => setFormData({ ...formData, electrolytes: e.target.checked })}
                 className="mr-2 h-4 w-4 text-indigo-600 rounded"
               />
-              <span className="text-sm font-medium text-gray-700">Electrolytes taken</span>
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Electrolytes taken</span>
             </label>
           </div>
 
@@ -239,7 +274,7 @@ const CheckinForm: React.FC<CheckinFormProps> = ({ onSubmit, onClose }) => {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 bg-gray-200 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-300 transition duration-200"
+              className="flex-1 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 py-2 px-4 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500 transition duration-200"
             >
               Cancel
             </button>

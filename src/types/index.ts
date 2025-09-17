@@ -8,6 +8,7 @@ export interface FastingSession {
   entries: CheckinEntry[];
   bodyMetrics: BodyMetric[];
   notes: JournalEntry[];
+  editToken?: string; // Random token required for edit access
 }
 
 export interface CheckinEntry {

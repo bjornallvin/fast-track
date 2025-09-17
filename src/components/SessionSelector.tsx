@@ -48,14 +48,14 @@ const SessionSelector: React.FC<SessionSelectorProps> = ({
     <div className="relative">
       <button
         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-        className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 border border-gray-200"
+        className="flex items-center gap-2 bg-white dark:bg-gray-800 px-4 py-2 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 border border-gray-200 dark:border-gray-600"
       >
         <div className="text-left">
-          <div className="font-semibold text-gray-900">
+          <div className="font-semibold text-gray-900 dark:text-white">
             {activeSession ? activeSession.name : 'No Session'}
           </div>
           {activeSession && (
-            <div className="text-xs text-gray-500">
+            <div className="text-xs text-gray-500 dark:text-gray-400">
               {getSessionStatus(activeSession)}
             </div>
           )}
@@ -76,14 +76,14 @@ const SessionSelector: React.FC<SessionSelectorProps> = ({
             className="fixed inset-0 z-40"
             onClick={() => setIsDropdownOpen(false)}
           />
-          <div className="absolute top-full left-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-96 overflow-y-auto">
+          <div className="absolute top-full left-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-600 z-50 max-h-96 overflow-y-auto">
             <div className="p-2">
               <button
                 onClick={() => {
                   onCreateNew();
                   setIsDropdownOpen(false);
                 }}
-                className="w-full text-left px-3 py-2 rounded-md hover:bg-indigo-50 flex items-center gap-2 text-indigo-600 font-medium"
+                className="w-full text-left px-3 py-2 rounded-md hover:bg-indigo-50 dark:hover:bg-indigo-900/30 flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-medium"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -92,14 +92,14 @@ const SessionSelector: React.FC<SessionSelectorProps> = ({
               </button>
             </div>
 
-            <div className="border-t border-gray-200">
+            <div className="border-t border-gray-200 dark:border-gray-600">
               {sessions.length === 0 ? (
-                <div className="p-4 text-center text-gray-500">
+                <div className="p-4 text-center text-gray-500 dark:text-gray-400">
                   No sessions yet. Create your first session!
                 </div>
               ) : (
                 <div className="p-2">
-                  <div className="text-xs font-semibold text-gray-500 uppercase px-3 py-1">
+                  <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase px-3 py-1">
                     Sessions ({sessions.length})
                   </div>
                   {sessions.map((session) => (
@@ -111,37 +111,37 @@ const SessionSelector: React.FC<SessionSelectorProps> = ({
                       }}
                       className={`px-3 py-2 rounded-md cursor-pointer transition-colors ${
                         session.id === activeSessionId
-                          ? 'bg-indigo-50 border-l-4 border-indigo-500'
-                          : 'hover:bg-gray-50'
+                          ? 'bg-indigo-50 dark:bg-indigo-900/30 border-l-4 border-indigo-500'
+                          : 'hover:bg-gray-50 dark:hover:bg-gray-700'
                       }`}
                     >
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
-                          <div className="font-medium text-gray-900">
+                          <div className="font-medium text-gray-900 dark:text-white">
                             {session.name}
                           </div>
-                          <div className="text-xs text-gray-500">
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
                             Started: {formatSwedishDateTime(session.startTime)}
                           </div>
                           <div className="text-xs mt-1">
                             {session.isActive ? (
-                              <span className="text-green-600 font-medium">
+                              <span className="text-green-600 dark:text-green-400 font-medium">
                                 {getSessionStatus(session)}
                               </span>
                             ) : (
-                              <span className="text-gray-400">
+                              <span className="text-gray-400 dark:text-gray-500">
                                 Completed
                               </span>
                             )}
                           </div>
-                          <div className="text-xs text-gray-400 mt-1">
+                          <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                             {session.entries.length} check-ins, {session.bodyMetrics.length} metrics
                           </div>
                         </div>
                         {sessions.length > 1 && (
                           <button
                             onClick={(e) => handleDelete(session.id, e)}
-                            className="ml-2 p-1 hover:bg-red-50 rounded transition-colors"
+                            className="ml-2 p-1 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-colors"
                             title="Delete session"
                           >
                             {showDeleteConfirm === session.id ? (

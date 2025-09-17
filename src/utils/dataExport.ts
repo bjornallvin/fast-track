@@ -117,7 +117,7 @@ export const exportSessionDataAsCSV = (session: FastingSession) => {
   ]);
 
   // Create CSV for body metrics
-  const metricsHeaders = ['Timestamp', 'Weight (lbs)', 'Body Fat (%)'];
+  const metricsHeaders = ['Timestamp', 'Weight (kg)', 'Body Fat (%)'];
   const metricsRows = session.bodyMetrics.map(metric => [
     metric.timestamp.toISOString(),
     metric.weight || '',

@@ -6,6 +6,7 @@ import BodyMetrics from './BodyMetrics';
 import ProgressChart from './ProgressChart';
 import SessionSelector from './SessionSelector';
 import NewSessionDialog from './NewSessionDialog';
+import ShareButton from './ShareButton';
 import type { FastingSession, CheckinEntry, BodyMetric } from '../types';
 import { formatSwedishDateTime } from '../utils/dateFormat';
 import { exportSessionData, exportSessionDataAsCSV, importSessionData } from '../utils/dataExport';
@@ -64,6 +65,24 @@ const Dashboard: React.FC<DashboardProps> = ({
     console.log(`Exported session data to ${fileName}`);
   };
 
+  const handleShareSession = () => {
+    if (!session) return;
+
+    // Create shareable read-only URL (simple, without token)
+    const shareUrl = `${window.location.origin}/view/${session.id}`;
+
+    // Copy to clipboard
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      // Show success message (you might want to add a toast notification here)
+      console.log('Share link copied to clipboard:', shareUrl);
+      alert(`Share link copied to clipboard!\n\n${shareUrl}\n\nAnyone with this link can view your fasting session (read-only).`);
+    }).catch(err => {
+      console.error('Failed to copy:', err);
+      // Fallback: show the URL in an alert so user can copy manually
+      alert(`Share this link to allow others to view your session:\n\n${shareUrl}`);
+    });
+  };
+
   const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -82,10 +101,10 @@ const Dashboard: React.FC<DashboardProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8 px-4">
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-4">
-          <h1 className="text-3xl font-bold text-gray-900">Fasting Tracker</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Fasting Tracker</h1>
           <SessionSelector
             sessions={sessions}
             activeSessionId={activeSessionId}
@@ -96,8 +115,8 @@ const Dashboard: React.FC<DashboardProps> = ({
         </div>
 
         {!session ? (
-          <div className="bg-white rounded-lg shadow-lg p-8 text-center mb-6">
-            <p className="text-gray-600 mb-4">No active session. Create a new fasting session to get started!</p>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 text-center mb-6">
+            <p className="text-gray-600 dark:text-gray-400 mb-4">No active session. Create a new fasting session to get started!</p>
             <button
               onClick={() => setShowNewSessionDialog(true)}
               className="bg-indigo-600 text-white px-6 py-2 rounded-md hover:bg-indigo-700 transition duration-200 font-medium"
@@ -124,6 +143,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                 End Fast
               </button>
             )}
+            {session && <ShareButton sessionId={session.id} />}
           </div>
         </div>
 
@@ -140,31 +160,76 @@ const Dashboard: React.FC<DashboardProps> = ({
 
           {latest && (
             <div className="lg:col-span-2">
-              <div className="bg-white rounded-lg shadow-lg p-6">
-                <h3 className="text-xl font-bold text-gray-800 mb-4">Latest Check-in</h3>
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+                <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-4">Latest Check-in</h3>
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                  <div className="text-center">
-                    <p className="text-sm text-gray-600">Energy</p>
+                  <div className="text-center group relative">
+                    <p className="text-sm text-gray-600 dark:text-gray-400 cursor-help">Energy</p>
                     <p className="text-2xl font-bold text-green-600">{latest.energy}/10</p>
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                      <div className="font-semibold mb-1">Energy Level</div>
+                      <div>1-3: Very tired, exhausted</div>
+                      <div>4-6: Some fatigue, manageable</div>
+                      <div>7-10: Good energy, feeling strong</div>
+                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
+                        <div className="border-4 border-transparent border-t-gray-900"></div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-center">
-                    <p className="text-sm text-gray-600">Hunger</p>
+                  <div className="text-center group relative">
+                    <p className="text-sm text-gray-600 dark:text-gray-400 cursor-help">Hunger</p>
                     <p className="text-2xl font-bold text-red-600">{latest.hunger}/10</p>
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                      <div className="font-semibold mb-1">Hunger Level</div>
+                      <div>1-3: Minimal hunger</div>
+                      <div>4-6: Moderate, manageable</div>
+                      <div>7-10: Strong hunger, challenging</div>
+                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
+                        <div className="border-4 border-transparent border-t-gray-900"></div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-center">
-                    <p className="text-sm text-gray-600">Mental Clarity</p>
+                  <div className="text-center group relative">
+                    <p className="text-sm text-gray-600 dark:text-gray-400 cursor-help">Mental Clarity</p>
                     <p className="text-2xl font-bold text-blue-600">{latest.mentalClarity}/10</p>
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                      <div className="font-semibold mb-1">Mental Clarity</div>
+                      <div>1-3: Brain fog, difficulty focusing</div>
+                      <div>4-6: Average clarity</div>
+                      <div>7-10: Sharp, clear thinking</div>
+                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
+                        <div className="border-4 border-transparent border-t-gray-900"></div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-center">
-                    <p className="text-sm text-gray-600">Mood</p>
+                  <div className="text-center group relative">
+                    <p className="text-sm text-gray-600 dark:text-gray-400 cursor-help">Mood</p>
                     <p className="text-2xl font-bold text-amber-600">{latest.mood}/10</p>
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                      <div className="font-semibold mb-1">Mood</div>
+                      <div>1-3: Irritable, low mood</div>
+                      <div>4-6: Neutral, stable</div>
+                      <div>7-10: Positive, upbeat</div>
+                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
+                        <div className="border-4 border-transparent border-t-gray-900"></div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-center">
-                    <p className="text-sm text-gray-600">Physical Comfort</p>
+                  <div className="text-center group relative">
+                    <p className="text-sm text-gray-600 dark:text-gray-400 cursor-help">Physical Comfort</p>
                     <p className="text-2xl font-bold text-violet-600">{latest.physicalComfort}/10</p>
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                      <div className="font-semibold mb-1">Physical Comfort</div>
+                      <div>1-3: Significant discomfort</div>
+                      <div>4-6: Some discomfort</div>
+                      <div>7-10: Comfortable, feeling good</div>
+                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
+                        <div className="border-4 border-transparent border-t-gray-900"></div>
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <p className="text-sm text-gray-500 mt-4">
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">
                   Last updated: {formatSwedishDateTime(latest.timestamp)}
                 </p>
               </div>
@@ -186,17 +251,17 @@ const Dashboard: React.FC<DashboardProps> = ({
         )}
 
         {/* Export/Import Section */}
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-          <h3 className="text-xl font-bold text-gray-800 mb-4">Data Management</h3>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-6">
+          <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-4">Data Management</h3>
           {importError && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
+            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md text-red-700 dark:text-red-400 text-sm">
               {importError}
             </div>
           )}
           <div className="flex flex-wrap gap-3">
             <button
               onClick={handleExportJSON}
-              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition duration-200 flex items-center gap-2"
+              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 dark:hover:bg-blue-600 transition duration-200 flex items-center gap-2"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -205,29 +270,16 @@ const Dashboard: React.FC<DashboardProps> = ({
             </button>
             <button
               onClick={handleExportCSV}
-              className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition duration-200 flex items-center gap-2"
+              className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 dark:hover:bg-green-600 transition duration-200 flex items-center gap-2"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
               Export as CSV
             </button>
-            <label className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition duration-200 cursor-pointer flex items-center gap-2">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-              </svg>
-              Import Session
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".json"
-                onChange={handleImport}
-                className="hidden"
-              />
-            </label>
           </div>
-          <p className="text-sm text-gray-600 mt-3">
-            Export your fasting data for backup or analysis. Import previously saved sessions to continue tracking.
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-3">
+            Export your fasting data for backup or analysis.
           </p>
         </div>
 

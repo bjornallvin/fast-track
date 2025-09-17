@@ -123,16 +123,16 @@ const Timer: React.FC<TimerProps> = ({ startTime, targetDuration, isActive }) =>
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-6">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
       <div className="text-center">
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">Fasting Progress</h2>
+        <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">Fasting Progress</h2>
 
         <div className="text-5xl font-bold text-indigo-600 mb-2">
           {formatElapsedTime(elapsedTime.hours, elapsedTime.minutes)}
         </div>
 
         {/* Start and End times */}
-        <div className="flex justify-center gap-6 text-sm text-gray-600 mb-4">
+        <div className="flex justify-center gap-6 text-sm text-gray-600 dark:text-gray-400 mb-4">
           <div className="flex items-center gap-1">
             <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -153,13 +153,13 @@ const Timer: React.FC<TimerProps> = ({ startTime, targetDuration, isActive }) =>
         </div>
 
         <div className="mb-4">
-          <div className="bg-gray-200 rounded-full h-4 mb-2">
+          <div className="bg-gray-200 dark:bg-gray-700 rounded-full h-4 mb-2">
             <div
               className="bg-indigo-600 h-4 rounded-full transition-all duration-300"
               style={{ width: `${percentage}%` }}
             />
           </div>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
             {percentage.toFixed(1)}% of {targetDuration} hour goal
           </p>
         </div>
@@ -191,7 +191,7 @@ const Timer: React.FC<TimerProps> = ({ startTime, targetDuration, isActive }) =>
                       fill="none"
                       stroke="currentColor"
                       strokeWidth="2"
-                      className="text-gray-300"
+                      className="text-gray-300 dark:text-gray-600"
                     />
                     {/* Progress circle */}
                     {milestone.percentComplete > 0 && (
@@ -214,7 +214,7 @@ const Timer: React.FC<TimerProps> = ({ startTime, targetDuration, isActive }) =>
                   </svg>
                   {/* Inner content */}
                   <div className={`${sizeClasses.container} rounded-full flex items-center justify-center relative ${
-                    milestone.isReached ? 'bg-green-50' : isPartial ? 'bg-green-50/30' : ''
+                    milestone.isReached ? 'bg-green-50 dark:bg-green-900/30' : isPartial ? 'bg-green-50/30 dark:bg-green-900/20' : ''
                   }`}>
                     <span className={sizeClasses.text}>{milestone.label}</span>
                   </div>
@@ -228,8 +228,8 @@ const Timer: React.FC<TimerProps> = ({ startTime, targetDuration, isActive }) =>
         </div>
 
         {!isActive && (
-          <div className="mt-6 p-4 bg-green-50 rounded-lg">
-            <p className="text-green-800 font-semibold">Fast Completed!</p>
+          <div className="mt-6 p-4 bg-green-50 dark:bg-green-900/30 rounded-lg">
+            <p className="text-green-800 dark:text-green-400 font-semibold">Fast Completed!</p>
           </div>
         )}
       </div>

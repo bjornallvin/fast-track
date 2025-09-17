@@ -20,6 +20,7 @@ export const useFastingData = () => {
       // Create default session starting yesterday at 5 PM
       const newSession: FastingSession = {
         id: generateId(),
+        name: 'Default Session',
         startTime: DEFAULT_START_TIME,
         targetDuration: 72,
         isActive: true,
@@ -96,6 +97,7 @@ export const useFastingData = () => {
   const startNewFast = (startTime?: Date, targetDuration = 72) => {
     const newSession: FastingSession = {
       id: generateId(),
+      name: 'New Session',
       startTime: startTime || new Date(),
       targetDuration,
       isActive: true,

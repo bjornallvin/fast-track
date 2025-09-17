@@ -11,8 +11,6 @@ const BodyMetrics: React.FC<BodyMetricsProps> = ({ metrics, onAddMetric }) => {
   const [isAdding, setIsAdding] = useState(false);
   const [weight, setWeight] = useState('');
   const [bodyFat, setBodyFat] = useState('');
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [syncError, setSyncError] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,36 +24,6 @@ const BodyMetrics: React.FC<BodyMetricsProps> = ({ metrics, onAddMetric }) => {
       setWeight('');
       setBodyFat('');
       setIsAdding(false);
-    }
-  };
-
-  const handleGarminSync = async () => {
-    setIsSyncing(true);
-    setSyncError('');
-
-    try {
-      const response = await fetch('/api/garmin/metrics');
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to sync');
-      }
-
-      // Add the synced data if we got valid metrics
-      const metric: Omit<BodyMetric, 'id' | 'timestamp'> = {};
-      if (data.weight) metric.weight = data.weight;
-      if (data.bodyFatPercentage) metric.bodyFatPercentage = data.bodyFatPercentage;
-
-      if (metric.weight || metric.bodyFatPercentage) {
-        onAddMetric(metric);
-        setIsAdding(false);
-      } else {
-        setSyncError('No body metrics found in Garmin Connect for today');
-      }
-    } catch (error) {
-      setSyncError(error instanceof Error ? error.message : 'Failed to sync with Garmin');
-    } finally {
-      setIsSyncing(false);
     }
   };
 
@@ -79,67 +47,40 @@ const BodyMetrics: React.FC<BodyMetricsProps> = ({ metrics, onAddMetric }) => {
   const previous = metrics.length > 1 ? [...metrics].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[1] : null;
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-6">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-bold text-gray-800">Body Metrics</h2>
-        <div className="flex gap-2">
-          <button
-            onClick={handleGarminSync}
-            disabled={isSyncing}
-            className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition duration-200 disabled:bg-gray-400 flex items-center gap-2"
-          >
-            {isSyncing ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                Syncing...
-              </>
-            ) : (
-              <>
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
-                </svg>
-                Sync Garmin
-              </>
-            )}
-          </button>
-          <button
-            onClick={() => setIsAdding(true)}
-            className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition duration-200"
-          >
-            Add Manually
-          </button>
-        </div>
+        <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Body Metrics</h2>
+        <button
+          onClick={() => setIsAdding(true)}
+          className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition duration-200"
+        >
+          Add Metrics
+        </button>
       </div>
 
-      {syncError && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
-          {syncError}
-        </div>
-      )}
-
       {isAdding && (
-        <form onSubmit={handleSubmit} className="mb-6 p-4 bg-gray-50 rounded-lg">
+        <form onSubmit={handleSubmit} className="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Weight (lbs)</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Weight (kg)</label>
               <input
                 type="number"
                 step="0.1"
                 value={weight}
                 onChange={(e) => setWeight(e.target.value)}
                 placeholder="Optional"
-                className="w-full p-2 border border-gray-300 rounded-md"
+                className="w-full p-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-600 dark:text-white rounded-md"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Body Fat %</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Body Fat %</label>
               <input
                 type="number"
                 step="0.1"
                 value={bodyFat}
                 onChange={(e) => setBodyFat(e.target.value)}
                 placeholder="Optional"
-                className="w-full p-2 border border-gray-300 rounded-md"
+                className="w-full p-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-600 dark:text-white rounded-md"
               />
             </div>
           </div>
@@ -157,7 +98,7 @@ const BodyMetrics: React.FC<BodyMetricsProps> = ({ metrics, onAddMetric }) => {
                 setWeight('');
                 setBodyFat('');
               }}
-              className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300 transition duration-200"
+              className="bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 px-4 py-2 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500 transition duration-200"
             >
               Cancel
             </button>
@@ -168,20 +109,20 @@ const BodyMetrics: React.FC<BodyMetricsProps> = ({ metrics, onAddMetric }) => {
       {latest ? (
         <div>
           <div className="grid grid-cols-2 gap-4 mb-4">
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <p className="text-sm text-gray-600 mb-1">Current Weight</p>
-              <p className="text-2xl font-bold text-gray-800">
-                {latest.weight ? `${latest.weight} lbs` : 'Not recorded'}
+            <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Current Weight</p>
+              <p className="text-2xl font-bold text-gray-800 dark:text-white">
+                {latest.weight ? `${latest.weight} kg` : 'Not recorded'}
               </p>
               {previous && latest.weight && previous.weight && (
                 <p className={`text-sm mt-1 ${getMetricChange(latest.weight, previous.weight)?.isDecrease ? 'text-green-600' : 'text-red-600'}`}>
-                  {getMetricChange(latest.weight, previous.weight)?.isDecrease ? '↓' : '↑'} {getMetricChange(latest.weight, previous.weight)?.value.toFixed(1)} lbs
+                  {getMetricChange(latest.weight, previous.weight)?.isDecrease ? '↓' : '↑'} {getMetricChange(latest.weight, previous.weight)?.value.toFixed(1)} kg
                 </p>
               )}
             </div>
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <p className="text-sm text-gray-600 mb-1">Body Fat</p>
-              <p className="text-2xl font-bold text-gray-800">
+            <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Body Fat</p>
+              <p className="text-2xl font-bold text-gray-800 dark:text-white">
                 {latest.bodyFatPercentage ? `${latest.bodyFatPercentage}%` : 'Not recorded'}
               </p>
               {previous && latest.bodyFatPercentage && previous.bodyFatPercentage && (
@@ -191,22 +132,24 @@ const BodyMetrics: React.FC<BodyMetricsProps> = ({ metrics, onAddMetric }) => {
               )}
             </div>
           </div>
-          <p className="text-sm text-gray-500">Last updated: {formatSwedishDateTime(latest.timestamp)}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Last updated: {formatSwedishDateTime(latest.timestamp)}</p>
         </div>
       ) : (
-        <p className="text-gray-500 text-center py-4">No measurements recorded yet</p>
+        <p className="text-gray-500 dark:text-gray-400 text-center py-4">No measurements recorded yet</p>
       )}
 
       {metrics.length > 1 && (
         <div className="mt-6">
-          <h3 className="text-lg font-semibold text-gray-700 mb-3">History</h3>
+          <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">History</h3>
           <div className="space-y-2 max-h-48 overflow-y-auto">
-            {[...metrics].reverse().map((metric) => (
-              <div key={metric.id} className="flex justify-between text-sm p-2 bg-gray-50 rounded">
-                <span className="text-gray-600">{formatSwedishDateTime(metric.timestamp)}</span>
+            {[...metrics].sort((a, b) =>
+              b.timestamp.getTime() - a.timestamp.getTime()
+            ).map((metric) => (
+              <div key={metric.id} className="flex justify-between text-sm p-2 bg-gray-50 dark:bg-gray-700 rounded">
+                <span className="text-gray-600 dark:text-gray-400">{formatSwedishDateTime(metric.timestamp)}</span>
                 <div className="flex gap-4">
-                  {metric.weight && <span>Weight: {metric.weight} lbs</span>}
-                  {metric.bodyFatPercentage && <span>Body Fat: {metric.bodyFatPercentage}%</span>}
+                  {metric.weight && <span className="dark:text-gray-300">Weight: {metric.weight} kg</span>}
+                  {metric.bodyFatPercentage && <span className="dark:text-gray-300">Body Fat: {metric.bodyFatPercentage}%</span>}
                 </div>
               </div>
             ))}
