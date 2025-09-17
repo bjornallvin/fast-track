@@ -10,37 +10,20 @@ const DEBOUNCE_DELAY = 2000; // Debounce saves by 2 seconds
 
 export const useUrlSessionData = (sessionId: string) => {
   const [session, setSession] = useState<FastingSession | null>(null);
-  const [sessions, setSessions] = useState<FastingSession[]>([]);
   const [showNewSessionDialog, setShowNewSessionDialog] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const router = useRouter();
   const saveTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const syncIntervalRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
-  // Load session from KV or localStorage
-  const loadSession = useCallback(async () => {
-    // First check localStorage
-    const localData = localStorage.getItem(`session:${sessionId}`);
-    if (localData) {
-      const localSession = JSON.parse(localData, (key, value) => {
-        if (key === 'startTime' || key === 'timestamp' || key === 'endTime') {
-          return value ? new Date(value) : value;
-        }
-        return value;
-      });
-
-      // Add editToken if it doesn't exist (for backward compatibility)
-      if (!localSession.editToken) {
-        localSession.editToken = generateEditToken();
-        localStorage.setItem(`session:${sessionId}`, JSON.stringify(localSession));
-      }
-
-      setSession(localSession);
+  // Load session from KV
+  const loadSession = useCallback(async (isInitialLoad = false) => {
+    if (isInitialLoad) {
+      setLoading(true);
     }
-
-    // Then try to load from KV
     try {
       const response = await fetch(`/api/sessions/${sessionId}`);
       if (response.ok) {
@@ -68,22 +51,36 @@ export const useUrlSessionData = (sessionId: string) => {
           // Add editToken if it doesn't exist (for backward compatibility)
           if (!sessionWithDates.editToken) {
             sessionWithDates.editToken = generateEditToken();
+            // Save directly without using saveToKV to avoid circular dependency
+            fetch(`/api/sessions/${sessionId}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(sessionWithDates)
+            }).catch(err => console.error('Error saving token:', err));
           }
 
-          setSession(sessionWithDates);
-          // Update localStorage with KV data
-          localStorage.setItem(`session:${sessionId}`, JSON.stringify(sessionWithDates));
+          // Only update state if the session has actually changed
+          setSession(prevSession => {
+            // If it's the initial load or data has changed, update
+            if (!prevSession || JSON.stringify(prevSession) !== JSON.stringify(sessionWithDates)) {
+              return sessionWithDates;
+            }
+            // Otherwise keep the same reference
+            return prevSession;
+          });
           setLastSyncTime(new Date());
         }
       } else if (response.status === 404) {
-        // Session doesn't exist in KV, create it if we have local data
-        if (localData) {
-          const localSession = JSON.parse(localData);
-          await saveToKV(localSession);
-        }
+        // Session doesn't exist
+        setSession(null);
       }
     } catch (error) {
       console.error('Error loading from KV:', error);
+      setSession(null);
+    } finally {
+      if (isInitialLoad) {
+        setLoading(false);
+      }
     }
   }, [sessionId]);
 
@@ -98,7 +95,9 @@ export const useUrlSessionData = (sessionId: string) => {
       try {
         await fetch(`/api/sessions/${sessionId}`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+          },
           body: JSON.stringify(sessionData)
         });
         setLastSyncTime(new Date());
@@ -110,65 +109,112 @@ export const useUrlSessionData = (sessionId: string) => {
     }, DEBOUNCE_DELAY);
   }, [sessionId]);
 
-  // Save session to both localStorage and KV
-  const saveSession = useCallback((sessionData: FastingSession) => {
-    // Save to localStorage immediately
-    localStorage.setItem(`session:${sessionId}`, JSON.stringify(sessionData));
-    setSession(sessionData);
+  // Load all sessions is removed for privacy - sessions are only stored in localStorage
 
-    // Save to KV (debounced)
-    saveToKV(sessionData);
-  }, [sessionId, saveToKV]);
+  // Update session and save
+  const updateSession = useCallback((updates: Partial<FastingSession>) => {
+    setSession(prev => {
+      if (!prev) return null;
+      const updated = { ...prev, ...updates };
+      saveToKV(updated);
+      return updated;
+    });
+  }, [saveToKV]);
 
-  // Load session on mount
-  useEffect(() => {
-    loadSession();
+  // Add check-in
+  const addCheckin = useCallback((checkin: Omit<CheckinEntry, 'id' | 'timestamp'>) => {
+    if (!session) return;
 
-    // Set up periodic sync
-    syncIntervalRef.current = setInterval(() => {
-      loadSession();
-    }, SYNC_INTERVAL);
-
-    return () => {
-      if (syncIntervalRef.current) {
-        clearInterval(syncIntervalRef.current);
-      }
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
-    };
-  }, [sessionId, loadSession]);
-
-  // Load all sessions from localStorage for the selector
-  useEffect(() => {
-    const loadAllSessions = () => {
-      const allSessions: FastingSession[] = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key?.startsWith('session:')) {
-          const sessionData = localStorage.getItem(key);
-          if (sessionData) {
-            const parsedSession = JSON.parse(sessionData, (key, value) => {
-              if (key === 'startTime' || key === 'timestamp' || key === 'endTime') {
-                return value ? new Date(value) : value;
-              }
-              return value;
-            });
-            allSessions.push(parsedSession);
-          }
-        }
-      }
-      setSessions(allSessions);
+    const newCheckin: CheckinEntry = {
+      ...checkin,
+      id: generateId(),
+      timestamp: new Date()
     };
 
-    loadAllSessions();
-  }, [session]);
+    const updatedSession = {
+      ...session,
+      entries: [...session.entries, newCheckin]
+    };
 
-  const createNewSession = (name: string, startTime: Date, targetDuration: number) => {
-    const newSessionId = generateSessionId();
-    const newEditToken = generateEditToken();
+    setSession(updatedSession);
+    saveToKV(updatedSession);
+  }, [session, saveToKV]);
+
+  // Add body metric
+  const addBodyMetric = useCallback((metric: Omit<BodyMetric, 'id' | 'timestamp'>) => {
+    if (!session) return;
+
+    const newMetric: BodyMetric = {
+      ...metric,
+      id: generateId(),
+      timestamp: new Date()
+    };
+
+    const updatedSession = {
+      ...session,
+      bodyMetrics: [...session.bodyMetrics, newMetric]
+    };
+
+    setSession(updatedSession);
+    saveToKV(updatedSession);
+  }, [session, saveToKV]);
+
+  // Add journal entry
+  const addJournalEntry = useCallback((content: string, tags: string[]) => {
+    if (!session) return;
+
+    const newEntry: JournalEntry = {
+      id: generateId(),
+      content,
+      tags,
+      timestamp: new Date()
+    };
+
+    const updatedSession = {
+      ...session,
+      notes: [...session.notes, newEntry]
+    };
+
+    setSession(updatedSession);
+    saveToKV(updatedSession);
+  }, [session, saveToKV]);
+
+  // End fast
+  const endFast = useCallback(() => {
+    if (!session) return;
+
+    const updatedSession = {
+      ...session,
+      endTime: new Date(),
+      isActive: false
+    };
+
+    setSession(updatedSession);
+    saveToKV(updatedSession);
+  }, [session, saveToKV]);
+
+  // Delete session
+  const deleteSession = useCallback(async (idToDelete: string) => {
+    try {
+      await fetch(`/api/sessions/${idToDelete}`, {
+        method: 'DELETE'
+      });
+
+      // If deleting current session, redirect
+      if (idToDelete === sessionId) {
+        router.push('/');
+      }
+    } catch (error) {
+      console.error('Error deleting session:', error);
+    }
+  }, [sessionId, router]);
+
+  // Create new session
+  const createSession = useCallback(async (name: string, startTime: Date, targetDuration: number) => {
+    const newId = generateSessionId();
+    const editToken = generateEditToken();
     const newSession: FastingSession = {
-      id: newSessionId,
+      id: newId,
       name,
       startTime,
       endTime: null,
@@ -177,150 +223,58 @@ export const useUrlSessionData = (sessionId: string) => {
       entries: [],
       bodyMetrics: [],
       notes: [],
-      editToken: newEditToken
+      editToken
     };
 
-    // Save locally and to KV
-    localStorage.setItem(`session:${newSessionId}`, JSON.stringify(newSession));
-    saveToKV(newSession);
-
-    // Navigate to the new session
-    router.push(`/session/${newEditToken}/${newSessionId}`);
-    setShowNewSessionDialog(false);
-  };
-
-  const switchToSession = (newSessionId: string) => {
-    // Load the session to get its editToken
-    const sessionData = localStorage.getItem(`session:${newSessionId}`);
-    if (sessionData) {
-      const parsedSession = JSON.parse(sessionData);
-      if (parsedSession.editToken) {
-        router.push(`/session/${parsedSession.editToken}/${newSessionId}`);
-      } else {
-        // For old sessions without editToken, generate one
-        const newEditToken = generateEditToken();
-        parsedSession.editToken = newEditToken;
-        localStorage.setItem(`session:${newSessionId}`, JSON.stringify(parsedSession));
-        router.push(`/session/${newEditToken}/${newSessionId}`);
-      }
-    }
-  };
-
-  const deleteSessionById = async (idToDelete: string) => {
-    // Delete from localStorage
-    localStorage.removeItem(`session:${idToDelete}`);
-
-    // Delete from KV
     try {
-      await fetch(`/api/sessions/${idToDelete}`, {
-        method: 'DELETE'
+      await fetch(`/api/sessions/${newId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newSession)
       });
+
+      // Navigate to the new session
+      router.push(`/session/${editToken}/${newId}`);
     } catch (error) {
-      console.error('Error deleting from KV:', error);
+      console.error('Error creating session:', error);
+      alert('Failed to create session. Please try again.');
     }
+  }, [router]);
 
-    // If deleting current session, redirect to home
-    if (idToDelete === sessionId) {
-      router.push('/');
-    }
+  // Load session on mount and set up sync
+  useEffect(() => {
+    loadSession(true); // Initial load
 
-    // Update sessions list
-    setSessions(prev => prev.filter(s => s.id !== idToDelete));
-  };
+    // Set up periodic sync
+    syncIntervalRef.current = setInterval(() => {
+      loadSession(false); // Background sync, don't show loading
+    }, SYNC_INTERVAL);
 
-  const addCheckinEntry = (entry: Omit<CheckinEntry, 'id' | 'timestamp'>) => {
-    if (!session) return;
-
-    const newEntry: CheckinEntry = {
-      ...entry,
-      id: generateId(),
-      timestamp: new Date(),
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+      if (syncIntervalRef.current) {
+        clearInterval(syncIntervalRef.current);
+      }
     };
-
-    const updatedSession = {
-      ...session,
-      entries: [...session.entries, newEntry],
-    };
-
-    saveSession(updatedSession);
-  };
-
-  const addBodyMetric = (metric: Omit<BodyMetric, 'id' | 'timestamp'>) => {
-    if (!session) return;
-
-    const newMetric: BodyMetric = {
-      ...metric,
-      id: generateId(),
-      timestamp: new Date(),
-    };
-
-    const updatedSession = {
-      ...session,
-      bodyMetrics: [...session.bodyMetrics, newMetric],
-    };
-
-    saveSession(updatedSession);
-  };
-
-  const addJournalEntry = (content: string, tags: string[]) => {
-    if (!session) return;
-
-    const newEntry: JournalEntry = {
-      id: generateId(),
-      timestamp: new Date(),
-      content,
-      tags,
-    };
-
-    const updatedSession = {
-      ...session,
-      notes: [...session.notes, newEntry],
-    };
-
-    saveSession(updatedSession);
-  };
-
-  const endFast = () => {
-    if (!session) return;
-
-    const updatedSession = {
-      ...session,
-      endTime: new Date(),
-      isActive: false,
-    };
-
-    saveSession(updatedSession);
-  };
-
-  const importSession = (importedSession: FastingSession) => {
-    // Generate new ID for imported session
-    const newSessionId = generateSessionId();
-    const sessionWithNewId = {
-      ...importedSession,
-      id: newSessionId
-    };
-
-    // Save and navigate to it
-    localStorage.setItem(`session:${newSessionId}`, JSON.stringify(sessionWithNewId));
-    saveToKV(sessionWithNewId);
-    router.push(`/session/${newSessionId}`);
-  };
+  }, [loadSession]);
 
   return {
-    sessions,
-    activeSession: session,
-    activeSessionId: sessionId,
+    session,
     showNewSessionDialog,
     setShowNewSessionDialog,
-    createNewSession,
-    switchToSession,
-    deleteSessionById,
-    addCheckinEntry,
+    isSyncing,
+    lastSyncTime,
+    loading,
+    addCheckin,
     addBodyMetric,
     addJournalEntry,
     endFast,
-    importSession,
-    isSyncing,
-    lastSyncTime
+    createSession,
+    deleteSession,
+    updateSession
   };
 };

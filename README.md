@@ -1,112 +1,181 @@
-# Fast Track - Fasting Tracker
+# Fast Track - Comprehensive Fasting Tracker
 
-A comprehensive web application for tracking extended fasting sessions with support for multiple users.
+A modern, privacy-focused fasting tracker with real-time monitoring, body metrics, and secure sharing capabilities.
+
+🌐 **Live Demo**: [https://fast-track.vercel.app](https://fast-track.vercel.app)
 
 ## Features
 
 ### 🎯 Core Functionality
-- **Multi-Session Support**: Track multiple fasting sessions for different people
-- **Smart Timer**: Dynamic milestone display with circular progress indicators
-- **Flexible Durations**: Support for fasts from 16 hours to 5+ days
-- **Real-time Progress**: Visual progress tracking with percentage completion
+- **Real-time fasting timer** with progress visualization
+- **5 key wellness metrics** tracking (energy, hunger, mental clarity, mood, physical comfort)
+- **Body composition tracking** (weight, body fat percentage)
+- **Journal entries** with tagging system
+- **Visual progress charts** with interactive data visualization
+- **Dark mode** with system preference detection
 
-### 📊 Tracking & Metrics
-- **Check-in System**: Record energy, hunger, mental clarity, mood, and physical comfort (1-10 scale)
-- **Body Metrics**: Track weight and body fat percentage
-- **Journal Entries**: Document experiences with tagging system
-- **Progress Charts**: Visualize trends over time with interactive charts
+### 🔒 Privacy & Security
+- **No public session listing** - sessions only accessible via direct links
+- **Dual access modes**:
+  - Edit mode with secure token (`/session/[token]/[id]`)
+  - Read-only sharing (`/view/[id]`)
+- **Local session management** - your sessions stored in browser
+- **Cloud sync** via Vercel KV for cross-device access
 
-### 💾 Data Management
-- **Export/Import**: Save sessions as JSON or CSV for backup and analysis
-- **Local Storage**: All data persisted in browser storage
-- **Session Switching**: Easy switching between different fasting sessions
-
-### 🎨 User Experience
-- **Swedish Time Format**: All dates/times in ISO format (YYYY-MM-DD HH:mm)
-- **Responsive Design**: Works on desktop and mobile devices
-- **Visual Feedback**: Descriptive text for metric scales to guide input
-- **Clean Interface**: Intuitive navigation with session dropdown
+### 📊 Data Management
+- **Export data** as JSON or CSV for backup and analysis
+- **Swedish date/time formatting** (YYYY-MM-DD HH:mm)
+- **Automatic session persistence** across devices
+- **Offline-capable** with cloud sync when online
 
 ## Tech Stack
 
-- **Framework**: Next.js 15.5.3 with App Router
+- **Framework**: Next.js 15 with App Router
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS
+- **Database**: Vercel KV (Redis)
 - **Charts**: Recharts
-- **State Management**: React Hooks
-- **Storage**: Browser LocalStorage
+- **Deployment**: Vercel
 
 ## Getting Started
 
 ### Prerequisites
 - Node.js 18+
 - npm or yarn
+- Vercel KV database (for cloud storage)
 
 ### Installation
 
+1. Clone the repository:
 ```bash
-# Clone the repository
 git clone https://github.com/bjornallvin/fast-track.git
 cd fast-track
+```
 
-# Install dependencies
+2. Install dependencies:
+```bash
 npm install
+```
 
-# Run development server
+3. Set up environment variables:
+Create a `.env.local` file with your Vercel KV credentials:
+```env
+KV_URL=your_kv_url
+KV_REST_API_URL=your_kv_rest_api_url
+KV_REST_API_TOKEN=your_kv_rest_api_token
+KV_REST_API_READ_ONLY_TOKEN=your_kv_rest_api_read_only_token
+```
+
+4. Run the development server:
+```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to view the app.
-
-### Build for Production
-
-```bash
-npm run build
-npm run start
-```
+Open [http://localhost:3000](http://localhost:3000) to see the app.
 
 ## Usage
 
-1. **Create a Session**: Click the dropdown in the top-right and "Create New Session"
-2. **Name Your Fast**: Enter a name (e.g., "John's 72h Fast")
-3. **Set Duration**: Choose your target duration (16h to 120h)
-4. **Track Progress**: The timer shows elapsed time and daily milestones
-5. **Regular Check-ins**: Click "Quick Check-in" to record how you're feeling
-6. **Add Metrics**: Record weight and body fat measurements
-7. **Journal**: Document your experiences and insights
-8. **Export Data**: Save your session data for analysis or backup
+### Starting a Fast
+1. Click "Start New Fasting Session" on the home page
+2. Enter session name and target duration (16-120 hours)
+3. Track your progress with regular check-ins
 
-## Features in Detail
+### Tracking Your Progress
+- **Quick Check-in**: Record your current state (1-10 scale for each metric)
+- **Body Metrics**: Log weight and body fat percentage changes
+- **Journal**: Document experiences, insights, and observations with tags
+- **Charts**: View trends over time with interactive visualizations
 
-### Check-in Metrics
-Each check-in tracks:
-- **Energy Level**: From exhausted (1) to peak energy (10)
-- **Hunger Level**: From no hunger (1) to extreme hunger (10)
-- **Mental Clarity**: From brain fog (1) to peak mental performance (10)
-- **Mood**: From severely low (1) to euphoric (10)
-- **Physical Comfort**: From severe discomfort (1) to perfect comfort (10)
-- **Sleep Quality** (optional)
-- **Water Intake** (optional)
-- **Electrolytes** (optional)
+### Sharing Sessions
+- **Edit link**: Keep your edit URL private (`/session/[token]/[id]`)
+- **Share link**: Share the read-only URL (`/view/[id]`) with others
+- Visited sessions are automatically saved in your browser for easy access
 
-### Session Management
-- Switch between multiple fasting sessions
-- Each session maintains independent data
-- Delete old sessions (except when only one remains)
-- Import previously exported sessions
+### Data Privacy
+- Sessions are private by default
+- No public discovery or browsing of sessions
+- Only accessible via direct links
+- Edit tokens prevent unauthorized modifications
 
-### Data Export
-- **JSON Format**: Complete session data for re-import
-- **CSV Format**: Structured data for spreadsheet analysis
+## Scientific Basis
+
+The app includes evidence-based information about fasting, with references to peer-reviewed research from:
+- New England Journal of Medicine
+- Cell Metabolism
+- Nature
+- Annual Review of Nutrition
+
+⚠️ **Medical Disclaimer**: Consult a healthcare provider before starting any fasting regimen, especially if you have diabetes, take medications, are pregnant/nursing, or have a history of eating disorders.
+
+## Development
+
+### Build for production:
+```bash
+npm run build
+```
+
+### Run tests:
+```bash
+npm test
+```
+
+### Lint code:
+```bash
+npm run lint
+```
+
+### Type checking:
+```bash
+npm run type-check
+```
+
+## Deployment
+
+The app is configured for deployment on Vercel:
+
+1. Push to GitHub
+2. Connect repository to Vercel
+3. Configure KV storage in Vercel dashboard
+4. Deploy
+
+## Project Structure
+
+```
+src/
+├── app/              # Next.js app router pages
+├── components/       # React components
+├── hooks/           # Custom React hooks
+├── types/           # TypeScript type definitions
+├── utils/           # Utility functions
+└── styles/          # Global styles
+```
 
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
 ## License
 
-MIT License - feel free to use this project for personal or commercial purposes.
+MIT License - see LICENSE file for details
+
+## Author
+
+Created by **Björn Allvin**
+- GitHub: [@bjornallvin](https://github.com/bjornallvin)
 
 ## Acknowledgments
 
-Built with ❤️ to support the fasting community in tracking their wellness journey.
+- Built with [Next.js](https://nextjs.org/)
+- Deployed on [Vercel](https://vercel.com/)
+- Icons from [Heroicons](https://heroicons.com/)
+- Charts by [Recharts](https://recharts.org/)
+
+---
+
+Made with ❤️ to support the fasting community in tracking their wellness journey.

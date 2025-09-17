@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react';
-import Timer from './Timer';
+import { useState, useRef, useMemo } from 'react';
+import TimerWrapper from './TimerWrapper';
 import CheckinForm from './CheckinForm';
 import Journal from './Journal';
 import BodyMetrics from './BodyMetrics';
@@ -13,23 +13,19 @@ import { exportSessionData, exportSessionDataAsCSV, importSessionData } from '..
 
 interface DashboardProps {
   session: FastingSession | null;
-  sessions: FastingSession[];
   activeSessionId: string | null;
   showNewSessionDialog: boolean;
   onAddCheckin: (entry: Omit<CheckinEntry, 'id' | 'timestamp'>) => void;
   onAddBodyMetric: (metric: Omit<BodyMetric, 'id' | 'timestamp'>) => void;
   onAddJournalEntry: (content: string, tags: string[]) => void;
   onEndFast: () => void;
-  onImportSession: (session: FastingSession) => void;
-  onSwitchSession: (sessionId: string) => void;
+  onImportSession?: (session: FastingSession) => void;
   onCreateNewSession: (name: string, startTime: Date, targetDuration: number) => void;
-  onDeleteSession: (sessionId: string) => void;
   setShowNewSessionDialog: (show: boolean) => void;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({
   session,
-  sessions,
   activeSessionId,
   showNewSessionDialog,
   onAddCheckin,
@@ -37,21 +33,17 @@ const Dashboard: React.FC<DashboardProps> = ({
   onAddJournalEntry,
   onEndFast,
   onImportSession,
-  onSwitchSession,
   onCreateNewSession,
-  onDeleteSession,
   setShowNewSessionDialog,
 }) => {
   const [showCheckinForm, setShowCheckinForm] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const getLatestCheckin = () => {
+  const latest = useMemo(() => {
     if (!session || session.entries.length === 0) return null;
     return [...session.entries].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0];
-  };
-
-  const latest = getLatestCheckin();
+  }, [session?.entries]);
 
   const handleExportJSON = () => {
     if (!session) return;
@@ -90,7 +82,9 @@ const Dashboard: React.FC<DashboardProps> = ({
     try {
       setImportError(null);
       const importedSession = await importSessionData(file);
-      onImportSession(importedSession);
+      if (onImportSession) {
+        onImportSession(importedSession);
+      }
       // Reset file input
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
@@ -104,13 +98,11 @@ const Dashboard: React.FC<DashboardProps> = ({
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8 px-4">
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-4">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Fasting Tracker</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Fast Track</h1>
           <SessionSelector
-            sessions={sessions}
-            activeSessionId={activeSessionId}
-            onSelectSession={onSwitchSession}
+            currentSessionId={activeSessionId}
+            currentSessionName={session?.name}
             onCreateNew={() => setShowNewSessionDialog(true)}
-            onDeleteSession={onDeleteSession}
           />
         </div>
 
@@ -150,7 +142,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
           <div className="lg:col-span-1">
             {session && (
-              <Timer
+              <TimerWrapper
                 startTime={session.startTime}
                 targetDuration={session.targetDuration}
                 isActive={session.isActive}

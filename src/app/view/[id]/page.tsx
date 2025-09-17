@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { isValidSessionId } from '@/utils/sessionId';
 import type { FastingSession } from '@/types';
+import type { SessionLink } from '@/types/sessionLink';
 import Timer from '@/components/Timer';
 import ProgressChart from '@/components/ProgressChart';
 import { formatSwedishDateTime } from '@/utils/dateFormat';
@@ -24,7 +25,7 @@ export default function ViewSessionPage() {
 
     const loadSession = async () => {
       try {
-        // First try to load from KV
+        // Load from KV
         const response = await fetch(`/api/sessions/${sessionId}`);
         if (response.ok) {
           const kvSession = await response.json();
@@ -47,23 +48,41 @@ export default function ViewSessionPage() {
               }))
             };
             setSession(sessionWithDates);
+
+            // Save as read-only link to localStorage
+            const sessionLink: SessionLink = {
+              id: sessionId,
+              name: sessionWithDates.name,
+              type: 'readonly',
+              lastAccessed: new Date(),
+              startTime: sessionWithDates.startTime,
+              targetDuration: sessionWithDates.targetDuration,
+              isActive: sessionWithDates.isActive
+            };
+
+            const storedLinks = localStorage.getItem('sessionLinks');
+            const links: SessionLink[] = storedLinks ? JSON.parse(storedLinks) : [];
+
+            // Check if this read-only link already exists
+            const existingIndex = links.findIndex(l => l.id === sessionId && l.type === 'readonly');
+            if (existingIndex !== -1) {
+              // Update last accessed time
+              links[existingIndex].lastAccessed = new Date();
+              links[existingIndex].name = sessionWithDates.name;
+              links[existingIndex].isActive = sessionWithDates.isActive;
+            } else {
+              // Add new read-only link
+              links.push(sessionLink);
+            }
+
+            localStorage.setItem('sessionLinks', JSON.stringify(links));
           } else {
             setError('Session not found');
           }
+        } else if (response.status === 404) {
+          setError('Session not found');
         } else {
-          // Fallback to localStorage
-          const localData = localStorage.getItem(`session:${sessionId}`);
-          if (localData) {
-            const localSession = JSON.parse(localData, (key, value) => {
-              if (key === 'startTime' || key === 'timestamp' || key === 'endTime') {
-                return value ? new Date(value) : value;
-              }
-              return value;
-            });
-            setSession(localSession);
-          } else {
-            setError('Session not found');
-          }
+          setError('Failed to load session');
         }
       } catch (err) {
         console.error('Error loading session:', err);

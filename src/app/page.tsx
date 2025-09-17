@@ -6,41 +6,48 @@ import { generateSessionId } from '@/utils/sessionId';
 import { generateEditToken } from '@/utils/editToken';
 import NewSessionDialog from '@/components/NewSessionDialog';
 import type { FastingSession } from '@/types';
+import type { SessionLink } from '@/types/sessionLink';
 
 export default function Home() {
   const router = useRouter();
   const [showNewSession, setShowNewSession] = useState(false);
-  const [recentSessions, setRecentSessions] = useState<FastingSession[]>([]);
+  const [editableSessions, setEditableSessions] = useState<SessionLink[]>([]);
+  const [readOnlySessions, setReadOnlySessions] = useState<SessionLink[]>([]);
 
   useEffect(() => {
-    // Load recent sessions from localStorage
-    const sessions: FastingSession[] = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key?.startsWith('session:')) {
-        const sessionData = localStorage.getItem(key);
-        if (sessionData) {
-          try {
-            const session = JSON.parse(sessionData);
-            sessions.push(session);
-          } catch (e) {
-            console.error('Error parsing session:', e);
-          }
+    // Load session links from localStorage
+    const loadSessionLinks = () => {
+      const storedLinks = localStorage.getItem('sessionLinks');
+      if (storedLinks) {
+        try {
+          const links: SessionLink[] = JSON.parse(storedLinks);
+          // Convert dates
+          const parsedLinks = links.map(link => ({
+            ...link,
+            lastAccessed: new Date(link.lastAccessed),
+            startTime: new Date(link.startTime)
+          }));
+
+          // Split into editable and read-only
+          const editable = parsedLinks.filter(link => link.type === 'editable');
+          const readOnly = parsedLinks.filter(link => link.type === 'readonly');
+
+          // Sort by last accessed
+          editable.sort((a, b) => b.lastAccessed.getTime() - a.lastAccessed.getTime());
+          readOnly.sort((a, b) => b.lastAccessed.getTime() - a.lastAccessed.getTime());
+
+          setEditableSessions(editable.slice(0, 5)); // Show max 5
+          setReadOnlySessions(readOnly.slice(0, 5)); // Show max 5
+        } catch (e) {
+          console.error('Error loading session links:', e);
         }
       }
-    }
+    };
 
-    // Sort by most recent activity
-    sessions.sort((a, b) => {
-      const aTime = a.endTime ? new Date(a.endTime).getTime() : new Date(a.startTime).getTime();
-      const bTime = b.endTime ? new Date(b.endTime).getTime() : new Date(b.startTime).getTime();
-      return bTime - aTime;
-    });
-
-    setRecentSessions(sessions.slice(0, 5)); // Show only 5 most recent
+    loadSessionLinks();
   }, []);
 
-  const handleCreateSession = (name: string, startTime: Date, targetDuration: number) => {
+  const handleCreateSession = async (name: string, startTime: Date, targetDuration: number) => {
     const sessionId = generateSessionId();
     const editToken = generateEditToken();
     const newSession: FastingSession = {
@@ -56,11 +63,59 @@ export default function Home() {
       editToken
     };
 
-    // Save to localStorage
-    localStorage.setItem(`session:${sessionId}`, JSON.stringify(newSession));
+    // Save to KV
+    try {
+      await fetch(`/api/sessions/${sessionId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newSession)
+      });
+
+      // Save link to localStorage
+      const sessionLink: SessionLink = {
+        id: sessionId,
+        name,
+        type: 'editable',
+        editToken,
+        lastAccessed: new Date(),
+        startTime,
+        targetDuration,
+        isActive: true
+      };
+
+      const storedLinks = localStorage.getItem('sessionLinks');
+      const links: SessionLink[] = storedLinks ? JSON.parse(storedLinks) : [];
+      links.push(sessionLink);
+      localStorage.setItem('sessionLinks', JSON.stringify(links));
+
+    } catch (error) {
+      console.error('Error saving session:', error);
+      alert('Failed to create session. Please try again.');
+      return;
+    }
 
     // Navigate to the new session
     router.push(`/session/${editToken}/${sessionId}`);
+  };
+
+  const navigateToSession = (link: SessionLink) => {
+    // Update last accessed time
+    const storedLinks = localStorage.getItem('sessionLinks');
+    if (storedLinks) {
+      const links: SessionLink[] = JSON.parse(storedLinks);
+      const index = links.findIndex(l => l.id === link.id && l.type === link.type);
+      if (index !== -1) {
+        links[index].lastAccessed = new Date();
+        localStorage.setItem('sessionLinks', JSON.stringify(links));
+      }
+    }
+
+    // Navigate based on type
+    if (link.type === 'editable' && link.editToken) {
+      router.push(`/session/${link.editToken}/${link.id}`);
+    } else {
+      router.push(`/view/${link.id}`);
+    }
   };
 
   return (
@@ -94,51 +149,95 @@ export default function Home() {
             </p>
             <button
               onClick={() => setShowNewSession(true)}
-              className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-10 py-4 rounded-xl hover:from-indigo-700 hover:to-purple-700 transition duration-200 text-lg font-medium shadow-lg transform hover:scale-105"
+              className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-10 py-4 rounded-xl hover:from-indigo-700 hover:to-purple-700 transition duration-200 text-lg font-medium shadow-lg transform hover:scale-105 cursor-pointer"
             >
               Start New Fasting Session
             </button>
           </div>
 
-          {recentSessions.length > 0 && (
+          {(editableSessions.length > 0 || readOnlySessions.length > 0) && (
             <div className="mt-10 pt-8 border-t border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">
-                Your Recent Sessions
-              </h3>
-              <div className="space-y-3">
-                {recentSessions.map(session => (
-                  <button
-                    key={session.id}
-                    onClick={() => router.push(`/session/${session.editToken}/${session.id}`)}
-                    className={`w-full text-left p-4 rounded-xl transition-all duration-200 ${
-                      session.isActive
-                        ? 'bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-2 border-green-300 dark:border-green-700 hover:shadow-lg transform hover:-translate-y-1'
-                        : 'bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 border-2 border-transparent hover:shadow-md'
-                    }`}
-                  >
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-2 h-2 rounded-full ${session.isActive ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
-                        <div>
-                          <span className="font-medium text-gray-900 dark:text-white">
-                            {session.name}
-                          </span>
-                          {session.isActive && (
-                            <span className="ml-2 px-2 py-1 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 text-xs rounded-full font-semibold">
-                              ACTIVE
+              {editableSessions.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                    Your Sessions
+                  </h3>
+                  <div className="space-y-3">
+                    {editableSessions.map(session => (
+                      <button
+                        key={`${session.id}-editable`}
+                        onClick={() => navigateToSession(session)}
+                        className={`w-full text-left p-4 rounded-xl transition-all duration-200 cursor-pointer ${
+                          session.isActive
+                            ? 'bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-2 border-green-300 dark:border-green-700 hover:shadow-lg transform hover:-translate-y-1'
+                            : 'bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 border-2 border-transparent hover:shadow-md'
+                        }`}
+                      >
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-2 h-2 rounded-full ${session.isActive ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
+                            <div>
+                              <span className="font-medium text-gray-900 dark:text-white">
+                                {session.name}
+                              </span>
+                              {session.isActive && (
+                                <span className="ml-2 px-2 py-1 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 text-xs rounded-full font-semibold">
+                                  ACTIVE
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <span className="text-sm font-medium text-indigo-600 dark:text-indigo-400">
+                              {session.targetDuration}h fast
                             </span>
-                          )}
+                            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                          </div>
                         </div>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-sm font-medium text-indigo-600 dark:text-indigo-400">
-                          {session.targetDuration}h fast
-                        </span>
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {readOnlySessions.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                    Sessions You're Following
+                  </h3>
+                  <div className="space-y-3">
+                    {readOnlySessions.map(session => (
+                      <button
+                        key={`${session.id}-readonly`}
+                        onClick={() => navigateToSession(session)}
+                        className="w-full text-left p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 border-2 border-transparent hover:shadow-md transition-all duration-200 cursor-pointer"
+                      >
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center gap-3">
+                            <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                              <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                            </svg>
+                            <div>
+                              <span className="font-medium text-gray-900 dark:text-white">
+                                {session.name}
+                              </span>
+                              <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">
+                                View Only
+                              </span>
+                            </div>
+                          </div>
+                          <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                            {session.targetDuration}h fast
+                          </span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -160,25 +259,36 @@ export default function Home() {
             <ul className="space-y-3 text-gray-600 dark:text-gray-400">
               <li className="flex items-start">
                 <span className="text-green-500 mr-2">•</span>
-                <span>Enhanced mental clarity and focus</span>
+                <span>Better blood sugar control</span>
               </li>
               <li className="flex items-start">
                 <span className="text-green-500 mr-2">•</span>
-                <span>Improved metabolic health</span>
+                <span>Lower blood pressure and heart rate</span>
               </li>
               <li className="flex items-start">
                 <span className="text-green-500 mr-2">•</span>
-                <span>Cellular autophagy activation</span>
+                <span>Reduced inflammation in the body</span>
               </li>
               <li className="flex items-start">
                 <span className="text-green-500 mr-2">•</span>
-                <span>Increased energy levels</span>
+                <span>Weight loss and less belly fat</span>
               </li>
               <li className="flex items-start">
                 <span className="text-green-500 mr-2">•</span>
-                <span>Better insulin sensitivity</span>
+                <span>May improve brain function (still being studied)</span>
               </li>
             </ul>
+            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <p className="text-xs text-gray-500 dark:text-gray-400">Learn more:</p>
+              <div className="space-y-1 mt-2">
+                <a href="https://www.nejm.org/doi/full/10.1056/NEJMra1905136" target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline block">
+                  → NEJM: Effects of Intermittent Fasting
+                </a>
+                <a href="https://pubmed.ncbi.nlm.nih.gov/31614992/" target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline block">
+                  → Effects on Health, Aging, and Disease
+                </a>
+              </div>
+            </div>
           </div>
 
           {/* Features Card */}
@@ -220,17 +330,20 @@ export default function Home() {
 
         {/* Fasting Phases Timeline */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 border border-gray-100 dark:border-gray-700">
-          <h3 className="text-2xl font-semibold text-gray-800 dark:text-white mb-6 text-center">
-            Fasting Timeline & Metabolic Phases
+          <h3 className="text-2xl font-semibold text-gray-800 dark:text-white mb-2 text-center">
+            Metabolic Changes During Fasting
           </h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400 text-center mb-6">
+            Based on scientific literature - individual responses may vary
+          </p>
           <div className="space-y-4">
             <div className="flex items-center group">
               <div className="w-20 text-right mr-4">
                 <span className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">0-4h</span>
               </div>
               <div className="flex-1 bg-gradient-to-r from-indigo-100 to-indigo-50 dark:from-indigo-900/30 dark:to-indigo-900/10 p-3 rounded-lg transition-all duration-200 group-hover:shadow-md group-hover:scale-[1.02]">
-                <span className="font-medium text-gray-800 dark:text-white">Fed State</span>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Body digesting and absorbing nutrients</p>
+                <span className="font-medium text-gray-800 dark:text-white">After Eating</span>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Body processes food, stores energy for later use</p>
               </div>
             </div>
             <div className="flex items-center group">
@@ -239,25 +352,25 @@ export default function Home() {
               </div>
               <div className="flex-1 bg-gradient-to-r from-purple-100 to-purple-50 dark:from-purple-900/30 dark:to-purple-900/10 p-3 rounded-lg transition-all duration-200 group-hover:shadow-md group-hover:scale-[1.02]">
                 <span className="font-medium text-gray-800 dark:text-white">Early Fasting</span>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Blood sugar normalizes, body starts using stored glycogen</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Body starts using stored sugar, making new energy</p>
               </div>
             </div>
             <div className="flex items-center group">
               <div className="w-20 text-right mr-4">
-                <span className="text-sm font-semibold text-pink-600 dark:text-pink-400">16-24h</span>
+                <span className="text-sm font-semibold text-pink-600 dark:text-pink-400">12-18h</span>
               </div>
               <div className="flex-1 bg-gradient-to-r from-pink-100 to-pink-50 dark:from-pink-900/30 dark:to-pink-900/10 p-3 rounded-lg transition-all duration-200 group-hover:shadow-md group-hover:scale-[1.02]">
-                <span className="font-medium text-gray-800 dark:text-white">Fat Burning</span>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Significant fat burning begins, HGH increases</p>
+                <span className="font-medium text-gray-800 dark:text-white">Sugar Stores Running Low</span>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Liver sugar mostly used up, body starts burning more fat</p>
               </div>
             </div>
             <div className="flex items-center group">
               <div className="w-20 text-right mr-4">
-                <span className="text-sm font-semibold text-orange-600 dark:text-orange-400">24-48h</span>
+                <span className="text-sm font-semibold text-orange-600 dark:text-orange-400">18-24h</span>
               </div>
               <div className="flex-1 bg-gradient-to-r from-orange-100 to-orange-50 dark:from-orange-900/30 dark:to-orange-900/10 p-3 rounded-lg transition-all duration-200 group-hover:shadow-md group-hover:scale-[1.02]">
-                <span className="font-medium text-gray-800 dark:text-white">Autophagy</span>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Cellular cleanup and regeneration accelerates</p>
+                <span className="font-medium text-gray-800 dark:text-white">Fat Burning Mode</span>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Body switches to burning fat for energy</p>
               </div>
             </div>
             <div className="flex items-center group">
@@ -265,9 +378,31 @@ export default function Home() {
                 <span className="text-sm font-semibold text-green-600 dark:text-green-400">48-72h</span>
               </div>
               <div className="flex-1 bg-gradient-to-r from-green-100 to-green-50 dark:from-green-900/30 dark:to-green-900/10 p-3 rounded-lg transition-all duration-200 group-hover:shadow-md group-hover:scale-[1.02]">
-                <span className="font-medium text-gray-800 dark:text-white">Deep Ketosis</span>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Maximum autophagy, stem cell regeneration begins</p>
+                <span className="font-medium text-gray-800 dark:text-white">Extended Fasting</span>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Fat burning peaks, growth hormone rises, cell cleanup increases</p>
               </div>
+            </div>
+          </div>
+          <div className="mt-6 p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+            <p className="text-sm text-amber-800 dark:text-amber-300">
+              <strong>⚠️ Medical Disclaimer:</strong> Fasting may not be suitable for everyone. Consult a healthcare provider before starting any fasting regimen, especially if you have diabetes, take medications, are pregnant/nursing, or have a history of eating disorders.
+            </p>
+          </div>
+          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <p className="text-xs text-gray-500 dark:text-gray-400">Scientific references:</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
+              <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5783752/" target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">
+                → How the body responds to fasting (Anton et al., 2018)
+              </a>
+              <a href="https://www.cell.com/cell-metabolism/fulltext/S1550-4131(15)00224-7" target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">
+                → Fasting and brain health (Mattson et al., 2018)
+              </a>
+              <a href="https://pubmed.ncbi.nlm.nih.gov/30172870/" target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">
+                → Cell cleanup during fasting (Levine et al., 2017)
+              </a>
+              <a href="https://www.annualreviews.org/doi/10.1146/annurev-nutr-071816-064634" target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">
+                → Body clocks and eating patterns (Panda, 2016)
+              </a>
             </div>
           </div>
         </div>

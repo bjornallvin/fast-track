@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { calculateElapsedTime, formatElapsedTime } from '../utils/calculations';
 import { formatSwedishDateTime } from '../utils/dateFormat';
 
@@ -14,24 +14,40 @@ const Timer: React.FC<TimerProps> = ({ startTime, targetDuration, isActive }) =>
   useEffect(() => {
     if (!isActive) return;
 
-    const interval = setInterval(() => {
-      setElapsedTime(calculateElapsedTime(startTime));
-    }, 60000); // Update every minute
+    // Update immediately
+    const updateElapsed = () => {
+      const newElapsed = calculateElapsedTime(startTime);
+      setElapsedTime(prev => {
+        // Only update if values have actually changed
+        if (prev.hours !== newElapsed.hours || prev.minutes !== newElapsed.minutes) {
+          return newElapsed;
+        }
+        return prev;
+      });
+    };
 
-    // Initial update
-    setElapsedTime(calculateElapsedTime(startTime));
+    updateElapsed();
+
+    // Then update every 30 seconds
+    const interval = setInterval(updateElapsed, 30000); // Update every 30 seconds
 
     return () => clearInterval(interval);
   }, [startTime, isActive]);
 
   // Calculate percentage based on target duration
-  const percentage = Math.min((elapsedTime.totalHours / targetDuration) * 100, 100);
+  const percentage = useMemo(() =>
+    Math.min((elapsedTime.totalHours / targetDuration) * 100, 100),
+    [elapsedTime.totalHours, targetDuration]
+  );
 
   // Calculate end time
-  const endTime = new Date(startTime.getTime() + targetDuration * 60 * 60 * 1000);
+  const endTime = useMemo(() =>
+    new Date(startTime.getTime() + targetDuration * 60 * 60 * 1000),
+    [startTime, targetDuration]
+  );
 
   // Generate milestones for each day
-  const getMilestones = () => {
+  const milestones = useMemo(() => {
     const milestones = [];
     const totalDays = Math.ceil(targetDuration / 24);
 
@@ -78,12 +94,10 @@ const Timer: React.FC<TimerProps> = ({ startTime, targetDuration, isActive }) =>
     }
 
     return milestones;
-  };
-
-  const milestones = getMilestones();
+  }, [elapsedTime.totalHours, targetDuration]);
 
   // Determine size classes based on number of milestones
-  const getSizeClasses = () => {
+  const sizeClasses = useMemo(() => {
     const count = milestones.length;
     if (count <= 3) {
       return {
@@ -104,12 +118,10 @@ const Timer: React.FC<TimerProps> = ({ startTime, targetDuration, isActive }) =>
         label: 'text-xs'
       };
     }
-  };
-
-  const sizeClasses = getSizeClasses();
+  }, [milestones.length]);
 
   // Create SVG path for partial circle
-  const createCirclePath = (percent: number) => {
+  const createCirclePath = useMemo(() => (percent: number) => {
     const radius = 22; // Slightly smaller than viewBox to account for stroke width
     const circumference = 2 * Math.PI * radius;
     const strokeDasharray = circumference;
@@ -120,7 +132,7 @@ const Timer: React.FC<TimerProps> = ({ startTime, targetDuration, isActive }) =>
       strokeDashoffset,
       radius
     };
-  };
+  }, []);
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
