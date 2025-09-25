@@ -16,6 +16,13 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Fast Track",
   description: "Modern fasting tracker with real-time monitoring, body metrics, and secure sharing",
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico", sizes: "any" }
+    ],
+    apple: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({
