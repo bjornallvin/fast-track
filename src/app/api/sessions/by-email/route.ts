@@ -30,7 +30,7 @@ export async function GET(request: Request) {
     // Use SCAN to iterate through all session keys
     let cursor: string | number = 0;
     do {
-      const result = await kv.scan(cursor, { match: 'session:*', count: 100 });
+      const result: [string | number, string[]] = await kv.scan(cursor, { match: 'session:*', count: 100 });
       cursor = result[0];
       const keys = result[1] as string[];
 

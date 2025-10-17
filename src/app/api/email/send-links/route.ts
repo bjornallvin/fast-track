@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import * as brevo from '@getbrevo/brevo';
 import { kv } from '@vercel/kv';
+import * as React from 'react';
 import type { FastingSession } from '@/types';
 import { SessionLinksEmail } from '@/components/email/SessionLinksEmail';
 import { render } from '@react-email/render';
@@ -41,7 +42,7 @@ export async function POST(request: Request) {
     // Use SCAN to iterate through all session keys
     let cursor: string | number = 0;
     do {
-      const result = await kv.scan(cursor, { match: 'session:*', count: 100 });
+      const result: [string | number, string[]] = await kv.scan(cursor, { match: 'session:*', count: 100 });
       cursor = result[0];
       const keys = result[1] as string[];
 
@@ -75,9 +76,8 @@ export async function POST(request: Request) {
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://fast-tracking.vercel.app';
 
     // Render email HTML using React Email
-    const emailHtml = await render(
-      SessionLinksEmail({ sessions: sessionData, baseUrl })
-    );
+    const emailElement = SessionLinksEmail({ sessions: sessionData, baseUrl }) as React.ReactElement;
+    const emailHtml = await render(emailElement);
 
     // Get sender info from environment variables
     const fromEmail = process.env.BREVO_FROM_EMAIL || 'noreply@example.com';
