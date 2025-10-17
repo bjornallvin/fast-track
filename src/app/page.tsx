@@ -5,12 +5,14 @@ import { useRouter } from 'next/navigation';
 import { generateSessionId } from '@/utils/sessionId';
 import { generateEditToken } from '@/utils/editToken';
 import NewSessionDialog from '@/components/NewSessionDialog';
+import EmailSessionLinksDialog from '@/components/EmailSessionLinksDialog';
 import type { FastingSession } from '@/types';
 import type { SessionLink } from '@/types/sessionLink';
 
 export default function Home() {
   const router = useRouter();
   const [showNewSession, setShowNewSession] = useState(false);
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
   const [editableSessions, setEditableSessions] = useState<SessionLink[]>([]);
   const [readOnlySessions, setReadOnlySessions] = useState<SessionLink[]>([]);
 
@@ -47,7 +49,12 @@ export default function Home() {
     loadSessionLinks();
   }, []);
 
-  const handleCreateSession = async (name: string, startTime: Date, targetDuration: number) => {
+  const handleCreateSession = async (
+    name: string,
+    startTime: Date,
+    targetDuration: number,
+    email?: string
+  ) => {
     const sessionId = generateSessionId();
     const editToken = generateEditToken();
     const newSession: FastingSession = {
@@ -60,7 +67,8 @@ export default function Home() {
       entries: [],
       bodyMetrics: [],
       notes: [],
-      editToken
+      editToken,
+      email
     };
 
     // Save to KV
@@ -147,12 +155,20 @@ export default function Home() {
             <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-lg mx-auto">
               Start tracking your fast with comprehensive metrics, journal entries, and body measurements
             </p>
-            <button
-              onClick={() => setShowNewSession(true)}
-              className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-10 py-4 rounded-xl hover:from-indigo-700 hover:to-purple-700 transition duration-200 text-lg font-medium shadow-lg transform hover:scale-105 cursor-pointer"
-            >
-              Start New Fasting Session
-            </button>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <button
+                onClick={() => setShowNewSession(true)}
+                className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-10 py-4 rounded-xl hover:from-indigo-700 hover:to-purple-700 transition duration-200 text-lg font-medium shadow-lg transform hover:scale-105 cursor-pointer"
+              >
+                Start New Fasting Session
+              </button>
+              <button
+                onClick={() => setShowEmailDialog(true)}
+                className="bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-400 border-2 border-indigo-600 dark:border-indigo-400 px-10 py-4 rounded-xl hover:bg-indigo-50 dark:hover:bg-gray-600 transition duration-200 text-lg font-medium shadow-lg transform hover:scale-105 cursor-pointer"
+              >
+                Email Me My Sessions
+              </button>
+            </div>
           </div>
 
           {(editableSessions.length > 0 || readOnlySessions.length > 0) && (
@@ -412,6 +428,12 @@ export default function Home() {
         <NewSessionDialog
           onCreateSession={handleCreateSession}
           onClose={() => setShowNewSession(false)}
+        />
+      )}
+
+      {showEmailDialog && (
+        <EmailSessionLinksDialog
+          onClose={() => setShowEmailDialog(false)}
         />
       )}
     </div>

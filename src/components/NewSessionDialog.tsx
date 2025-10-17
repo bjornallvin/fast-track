@@ -2,22 +2,34 @@ import { useState } from 'react';
 import { formatSwedishDateTime } from '../utils/dateFormat';
 
 interface NewSessionDialogProps {
-  onCreateSession: (name: string, startTime: Date, targetDuration: number) => void;
+  onCreateSession: (name: string, startTime: Date, targetDuration: number, email?: string) => void;
   onClose: () => void;
 }
 
 const NewSessionDialog: React.FC<NewSessionDialogProps> = ({ onCreateSession, onClose }) => {
   const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
   const [startNow, setStartNow] = useState(true);
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [startTime, setStartTime] = useState(new Date().toTimeString().slice(0, 5));
   const [targetDuration, setTargetDuration] = useState('72');
+
+  const isValidEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!name.trim()) {
       alert('Please enter a name for the session');
+      return;
+    }
+
+    // Validate email if provided
+    if (email.trim() && !isValidEmail(email.trim())) {
+      alert('Please enter a valid email address');
       return;
     }
 
@@ -28,7 +40,12 @@ const NewSessionDialog: React.FC<NewSessionDialogProps> = ({ onCreateSession, on
       sessionStartTime = new Date(`${startDate}T${startTime}`);
     }
 
-    onCreateSession(name.trim(), sessionStartTime, parseInt(targetDuration));
+    onCreateSession(
+      name.trim(),
+      sessionStartTime,
+      parseInt(targetDuration),
+      email.trim() || undefined
+    );
   };
 
   return (
@@ -56,6 +73,22 @@ const NewSessionDialog: React.FC<NewSessionDialogProps> = ({ onCreateSession, on
               className="w-full p-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               autoFocus
             />
+          </div>
+
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Email (optional)
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="your@email.com"
+              className="w-full p-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Get links to your sessions via email
+            </p>
           </div>
 
           <div className="mb-4">

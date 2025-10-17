@@ -52,7 +52,7 @@ export async function POST(
 ) {
   const { id } = await params;
   try {
-    const session = await request.json();
+    const session: FastingSession = await request.json();
 
     // Store with 90-day expiry (in seconds)
     await kv.set(`session:${id}`, session, { ex: 7776000 });

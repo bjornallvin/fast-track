@@ -9,6 +9,7 @@ export interface FastingSession {
   bodyMetrics: BodyMetric[];
   notes: JournalEntry[];
   editToken?: string; // Random token required for edit access
+  email?: string; // Optional email for session recovery
 }
 
 export interface CheckinEntry {
