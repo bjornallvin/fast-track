@@ -106,6 +106,18 @@ export const SessionLinksEmail: React.FC<SessionLinksEmailProps> = ({
       marginBottom: '16px',
       lineHeight: '1.5',
     },
+    linkBlock: {
+      marginTop: '12px',
+      fontSize: '13px',
+      color: '#4b5563',
+      wordBreak: 'break-all' as const,
+      lineHeight: '1.5',
+    },
+    rawLink: {
+      color: '#4f46e5',
+      textDecoration: 'underline',
+      fontWeight: '500',
+    },
     buttonPrimary: {
       display: 'inline-block',
       padding: '12px 24px',
@@ -188,6 +200,29 @@ export const SessionLinksEmail: React.FC<SessionLinksEmailProps> = ({
                 >
                   View Only
                 </a>
+              </div>
+
+              <div style={styles.linkBlock}>
+                {session.editToken && (
+                  <p>
+                    Edit link:{' '}
+                    <a
+                      href={`${baseUrl}/session/${session.editToken}/${session.id}`}
+                      style={styles.rawLink}
+                    >
+                      {`${baseUrl}/session/${session.editToken}/${session.id}`}
+                    </a>
+                  </p>
+                )}
+                <p>
+                  View link:{' '}
+                  <a
+                    href={`${baseUrl}/view/${session.id}`}
+                    style={styles.rawLink}
+                  >
+                    {`${baseUrl}/view/${session.id}`}
+                  </a>
+                </p>
               </div>
             </div>
           ))}
