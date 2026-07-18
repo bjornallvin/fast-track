@@ -39,3 +39,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# vendor-installed agent skills (Vercel marketplace integrations)
+.agents/
+.claude/skills/upstash-*
+skills-lock.json

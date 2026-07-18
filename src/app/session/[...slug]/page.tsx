@@ -126,11 +126,8 @@ export default function SessionPage() {
   // Show loading for old format redirects
   if (isOldFormat) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Redirecting...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center font-serif italic text-muted">
+        redirecting…
       </div>
     );
   }
@@ -138,11 +135,8 @@ export default function SessionPage() {
   // Show loading while loading session
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Loading session...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center font-serif italic text-muted">
+        loading the fast…
       </div>
     );
   }
@@ -150,16 +144,14 @@ export default function SessionPage() {
   // Show error if no session found
   if (!session) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-            Session not found
-          </h1>
+          <h1 className="font-serif font-medium text-3xl mb-4">Session not found</h1>
           <button
             onClick={() => router.push('/')}
-            className="bg-indigo-600 text-white px-6 py-2 rounded-md hover:bg-indigo-700 transition duration-200"
+            className="bg-clay text-white px-7 py-3 rounded-xl font-semibold cursor-pointer hover:opacity-90"
           >
-            Go to Home
+            Go home
           </button>
         </div>
       </div>
@@ -169,8 +161,8 @@ export default function SessionPage() {
   // Show loading while validating token
   if (isNewFormat && !tokenValidated) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <div className="text-gray-600 dark:text-gray-400">Validating access...</div>
+      <div className="min-h-screen flex items-center justify-center font-serif italic text-muted">
+        validating access…
       </div>
     );
   }

@@ -1,3 +1,5 @@
+'use client';
+
 import { useState } from 'react';
 import type { JournalEntry } from '../types';
 import { formatSwedishDateTime } from '../utils/dateFormat';
@@ -26,41 +28,42 @@ const Journal: React.FC<JournalProps> = ({ entries, onAddEntry }) => {
     }
   };
 
-
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Journal</h2>
-        <button
-          onClick={() => setIsAdding(true)}
-          className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition duration-200"
-        >
-          Add Entry
-        </button>
+    <div className="bg-card border border-line rounded-2xl px-5 py-5">
+      <div className="flex justify-between items-center mb-3">
+        <h3 className="font-serif font-medium text-lg">Journal</h3>
+        {!isAdding && (
+          <button
+            onClick={() => setIsAdding(true)}
+            className="px-4 py-2 rounded-xl border border-clay text-clay font-semibold text-sm cursor-pointer hover:bg-clay hover:text-white transition-colors"
+          >
+            Write
+          </button>
+        )}
       </div>
 
       {isAdding && (
-        <form onSubmit={handleSubmit} className="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+        <form onSubmit={handleSubmit} className="mb-5">
           <textarea
             value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder="Write your observations..."
-            className="w-full p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-600 dark:text-white rounded-md mb-3 min-h-[100px]"
+            onChange={e => setContent(e.target.value)}
+            placeholder="What is this hour like?"
+            className="w-full px-3.5 py-3 border border-line rounded-xl bg-white mb-2.5 min-h-[100px]"
             autoFocus
           />
           <input
             type="text"
             value={tagInput}
-            onChange={(e) => setTagInput(e.target.value)}
-            placeholder="Tags (comma-separated): breakthrough, challenging, physical, mental"
-            className="w-full p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-600 dark:text-white rounded-md mb-3"
+            onChange={e => setTagInput(e.target.value)}
+            placeholder="tags, comma-separated: breakthrough, challenging, mental"
+            className="w-full px-3.5 py-2.5 border border-line rounded-xl bg-white mb-3 text-sm"
           />
-          <div className="flex gap-2">
+          <div className="flex gap-2.5">
             <button
               type="submit"
-              className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition duration-200"
+              className="px-5 py-2.5 rounded-xl bg-clay text-white font-semibold text-sm cursor-pointer hover:opacity-90"
             >
-              Save
+              Save entry
             </button>
             <button
               type="button"
@@ -69,7 +72,7 @@ const Journal: React.FC<JournalProps> = ({ entries, onAddEntry }) => {
                 setContent('');
                 setTagInput('');
               }}
-              className="bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 px-4 py-2 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500 transition duration-200"
+              className="px-5 py-2.5 rounded-xl border border-line font-semibold text-sm cursor-pointer"
             >
               Cancel
             </button>
@@ -79,28 +82,32 @@ const Journal: React.FC<JournalProps> = ({ entries, onAddEntry }) => {
 
       <div className="space-y-4 max-h-96 overflow-y-auto">
         {entries.length === 0 ? (
-          <p className="text-gray-500 dark:text-gray-400 text-center py-4">No journal entries yet</p>
+          <p className="font-serif italic text-muted text-sm">
+            nothing written yet — a line or two goes a long way
+          </p>
         ) : (
-          [...entries].sort((a, b) =>
-            b.timestamp.getTime() - a.timestamp.getTime()
-          ).map((entry) => (
-            <div key={entry.id} className="border-l-4 border-indigo-200 dark:border-indigo-600 pl-4 py-2">
-              <div className="flex justify-between items-start mb-2">
-                <span className="text-sm text-gray-500 dark:text-gray-400">{formatSwedishDateTime(entry.timestamp)}</span>
-                <div className="flex gap-1">
-                  {entry.tags.map((tag, index) => (
-                    <span
-                      key={index}
-                      className="text-xs bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-400 px-2 py-1 rounded-full"
-                    >
-                      {tag}
-                    </span>
-                  ))}
+          [...entries]
+            .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+            .map(entry => (
+              <div key={entry.id} className="border-l-[3px] border-ochre pl-4 py-1">
+                <div className="flex justify-between items-start mb-1 gap-2 flex-wrap">
+                  <span className="text-xs text-muted">
+                    {formatSwedishDateTime(entry.timestamp)}
+                  </span>
+                  <div className="flex gap-1 flex-wrap">
+                    {entry.tags.map((tag, index) => (
+                      <span
+                        key={index}
+                        className="text-xs bg-paper border border-line text-muted px-2 py-0.5 rounded-full"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
                 </div>
+                <p className="whitespace-pre-wrap text-[15px]">{entry.content}</p>
               </div>
-              <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{entry.content}</p>
-            </div>
-          ))
+            ))
         )}
       </div>
     </div>

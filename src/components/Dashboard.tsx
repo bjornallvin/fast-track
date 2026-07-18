@@ -1,5 +1,7 @@
-import { useState, useRef, useMemo } from 'react';
-import TimerWrapper from './TimerWrapper';
+'use client';
+
+import { useMemo, useState } from 'react';
+import SharedTimerHero from './SharedTimerHero';
 import CheckinForm from './CheckinForm';
 import Journal from './Journal';
 import BodyMetrics from './BodyMetrics';
@@ -9,7 +11,8 @@ import NewSessionDialog from './NewSessionDialog';
 import ShareButton from './ShareButton';
 import type { FastingSession, CheckinEntry, BodyMetric } from '../types';
 import { formatSwedishDateTime } from '../utils/dateFormat';
-import { exportSessionData, exportSessionDataAsCSV, importSessionData } from '../utils/dataExport';
+import { exportSessionData, exportSessionDataAsCSV } from '../utils/dataExport';
+import { calculateElapsedTime } from '../utils/calculations';
 
 interface DashboardProps {
   session: FastingSession | null;
@@ -24,6 +27,20 @@ interface DashboardProps {
   setShowNewSessionDialog: (show: boolean) => void;
 }
 
+const DAY_WORDS = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
+
+const METRIC_CARDS: {
+  key: 'energy' | 'hunger' | 'mentalClarity' | 'mood' | 'physicalComfort';
+  label: string;
+  clay?: boolean;
+}[] = [
+  { key: 'energy', label: 'Energy' },
+  { key: 'hunger', label: 'Hunger', clay: true },
+  { key: 'mentalClarity', label: 'Mental clarity' },
+  { key: 'mood', label: 'Mood' },
+  { key: 'physicalComfort', label: 'Physical comfort' },
+];
+
 const Dashboard: React.FC<DashboardProps> = ({
   session,
   activeSessionId,
@@ -32,266 +49,197 @@ const Dashboard: React.FC<DashboardProps> = ({
   onAddBodyMetric,
   onAddJournalEntry,
   onEndFast,
-  onImportSession,
   onCreateNewSession,
   setShowNewSessionDialog,
 }) => {
   const [showCheckinForm, setShowCheckinForm] = useState(false);
-  const [importError, setImportError] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const latest = useMemo(() => {
     if (!session || session.entries.length === 0) return null;
     return [...session.entries].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0];
-  }, [session?.entries]);
+  }, [session]);
 
-  const handleExportJSON = () => {
-    if (!session) return;
-    const fileName = exportSessionData(session);
-    console.log(`Exported session data to ${fileName}`);
-  };
+  const latestBody = useMemo(() => {
+    if (!session || session.bodyMetrics.length === 0) return null;
+    return [...session.bodyMetrics].sort(
+      (a, b) => b.timestamp.getTime() - a.timestamp.getTime()
+    )[0];
+  }, [session]);
 
-  const handleExportCSV = () => {
-    if (!session) return;
-    const fileName = exportSessionDataAsCSV(session);
-    console.log(`Exported session data to ${fileName}`);
-  };
-
-  const handleShareSession = () => {
-    if (!session) return;
-
-    // Create shareable read-only URL (simple, without token)
-    const shareUrl = `${window.location.origin}/view/${session.id}`;
-
-    // Copy to clipboard
-    navigator.clipboard.writeText(shareUrl).then(() => {
-      // Show success message (you might want to add a toast notification here)
-      console.log('Share link copied to clipboard:', shareUrl);
-      alert(`Share link copied to clipboard!\n\n${shareUrl}\n\nAnyone with this link can view your fasting session (read-only).`);
-    }).catch(err => {
-      console.error('Failed to copy:', err);
-      // Fallback: show the URL in an alert so user can copy manually
-      alert(`Share this link to allow others to view your session:\n\n${shareUrl}`);
-    });
-  };
-
-  const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    try {
-      setImportError(null);
-      const importedSession = await importSessionData(file);
-      if (onImportSession) {
-        onImportSession(importedSession);
-      }
-      // Reset file input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    } catch (error) {
-      setImportError(error instanceof Error ? error.message : 'Failed to import session data');
-    }
-  };
+  const dayLabel = useMemo(() => {
+    if (!session) return '';
+    const elapsed = session.endTime
+      ? (session.endTime.getTime() - session.startTime.getTime()) / 3600000
+      : calculateElapsedTime(session.startTime, session.targetDuration).totalHours;
+    const day = Math.max(1, Math.floor(elapsed / 24) + 1);
+    return `day ${DAY_WORDS[day - 1] ?? day}`;
+  }, [session]);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8 px-4">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-4">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Fast Track</h1>
+    <div className="max-w-3xl mx-auto px-7 py-10 pb-20">
+      <header className="flex justify-between items-center mb-9 gap-4 flex-wrap">
+        <a href="/" className="font-serif font-semibold text-2xl tracking-tight text-ink">
+          Fast<b className="text-clay">·</b>Track
+        </a>
+        <div className="flex items-center gap-3">
+          {session && (
+            <span className="text-[13px] text-muted hidden sm:inline">
+              A quiet fast for <b className="text-ink font-semibold">{session.name}</b> · {dayLabel}
+            </span>
+          )}
           <SessionSelector
             currentSessionId={activeSessionId}
             currentSessionName={session?.name}
             onCreateNew={() => setShowNewSessionDialog(true)}
           />
         </div>
+      </header>
 
-        {!session ? (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 text-center mb-6">
-            <p className="text-gray-600 dark:text-gray-400 mb-4">No active session. Create a new fasting session to get started!</p>
-            <button
-              onClick={() => setShowNewSessionDialog(true)}
-              className="bg-indigo-600 text-white px-6 py-2 rounded-md hover:bg-indigo-700 transition duration-200 font-medium"
-            >
-              Create New Session
-            </button>
-          </div>
-        ) : (
-          <>
-        <div className="flex justify-between items-center mb-8">
-          <div className="flex gap-3">
-            <button
-              onClick={() => setShowCheckinForm(true)}
-              className="bg-indigo-600 text-white px-6 py-2 rounded-md hover:bg-indigo-700 transition duration-200 font-medium"
-              disabled={!session || !session.isActive}
-            >
-              Quick Check-in
-            </button>
-            {session && session.isActive && (
-              <button
-                onClick={onEndFast}
-                className="bg-red-600 text-white px-6 py-2 rounded-md hover:bg-red-700 transition duration-200 font-medium"
-              >
-                End Fast
-              </button>
-            )}
-            {session && <ShareButton sessionId={session.id} />}
-          </div>
+      {!session ? (
+        <div className="bg-card border border-line rounded-2xl p-10 text-center">
+          <p className="font-serif italic text-muted mb-5">
+            no active fast here — begin one to start the clock
+          </p>
+          <button
+            onClick={() => setShowNewSessionDialog(true)}
+            className="bg-clay text-white px-8 py-3.5 rounded-2xl font-semibold cursor-pointer shadow-[0_6px_18px_rgba(181,100,63,.25)] hover:opacity-90"
+          >
+            ＋ Start a new fast
+          </button>
         </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-          <div className="lg:col-span-1">
-            {session && (
-              <TimerWrapper
-                startTime={session.startTime}
-                targetDuration={session.targetDuration}
-                isActive={session.isActive}
-              />
-            )}
-          </div>
+      ) : (
+        <>
+          <SharedTimerHero
+            eyebrow={session.isActive ? 'Currently fasting' : 'The fast has ended'}
+            startTime={session.startTime}
+            targetDuration={session.targetDuration}
+            endTime={session.isActive ? null : session.endTime}
+          />
 
           {latest && (
-            <div className="lg:col-span-2">
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-                <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-4">Latest Check-in</h3>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                  <div className="text-center group relative">
-                    <p className="text-sm text-gray-600 dark:text-gray-400 cursor-help">Energy</p>
-                    <p className="text-2xl font-bold text-green-600">{latest.energy}/10</p>
-                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                      <div className="font-semibold mb-1">Energy Level</div>
-                      <div>1-3: Very tired, exhausted</div>
-                      <div>4-6: Some fatigue, manageable</div>
-                      <div>7-10: Good energy, feeling strong</div>
-                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
-                        <div className="border-4 border-transparent border-t-gray-900"></div>
+            <>
+              <h3 className="font-serif font-medium text-xl mt-9 mb-3.5 flex items-center gap-3 after:content-[''] after:flex-1 after:h-px after:bg-line">
+                How you feel
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                {METRIC_CARDS.map(card => {
+                  const value = latest[card.key];
+                  return (
+                    <div key={card.key} className="bg-card border border-line rounded-2xl px-5 py-4.5">
+                      <div className="flex justify-between items-baseline mb-3">
+                        <span className="text-sm font-semibold">{card.label}</span>
+                        <span className="font-serif font-medium text-[22px]">
+                          {value}
+                          <span className="text-[13px] text-muted font-sans">/10</span>
+                        </span>
+                      </div>
+                      <div className="flex gap-1.5">
+                        {Array.from({ length: 10 }, (_, i) => (
+                          <span
+                            key={i}
+                            className={`w-[15px] h-[15px] rounded-full border-[1.5px] ${
+                              card.clay ? 'border-clay' : 'border-sage'
+                            } ${i < value ? (card.clay ? 'bg-clay' : 'bg-sage') : ''}`}
+                          />
+                        ))}
                       </div>
                     </div>
-                  </div>
-                  <div className="text-center group relative">
-                    <p className="text-sm text-gray-600 dark:text-gray-400 cursor-help">Hunger</p>
-                    <p className="text-2xl font-bold text-red-600">{latest.hunger}/10</p>
-                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                      <div className="font-semibold mb-1">Hunger Level</div>
-                      <div>1-3: Minimal hunger</div>
-                      <div>4-6: Moderate, manageable</div>
-                      <div>7-10: Strong hunger, challenging</div>
-                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
-                        <div className="border-4 border-transparent border-t-gray-900"></div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-center group relative">
-                    <p className="text-sm text-gray-600 dark:text-gray-400 cursor-help">Mental Clarity</p>
-                    <p className="text-2xl font-bold text-blue-600">{latest.mentalClarity}/10</p>
-                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                      <div className="font-semibold mb-1">Mental Clarity</div>
-                      <div>1-3: Brain fog, difficulty focusing</div>
-                      <div>4-6: Average clarity</div>
-                      <div>7-10: Sharp, clear thinking</div>
-                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
-                        <div className="border-4 border-transparent border-t-gray-900"></div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-center group relative">
-                    <p className="text-sm text-gray-600 dark:text-gray-400 cursor-help">Mood</p>
-                    <p className="text-2xl font-bold text-amber-600">{latest.mood}/10</p>
-                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                      <div className="font-semibold mb-1">Mood</div>
-                      <div>1-3: Irritable, low mood</div>
-                      <div>4-6: Neutral, stable</div>
-                      <div>7-10: Positive, upbeat</div>
-                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
-                        <div className="border-4 border-transparent border-t-gray-900"></div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-center group relative">
-                    <p className="text-sm text-gray-600 dark:text-gray-400 cursor-help">Physical Comfort</p>
-                    <p className="text-2xl font-bold text-violet-600">{latest.physicalComfort}/10</p>
-                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                      <div className="font-semibold mb-1">Physical Comfort</div>
-                      <div>1-3: Significant discomfort</div>
-                      <div>4-6: Some discomfort</div>
-                      <div>7-10: Comfortable, feeling good</div>
-                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
-                        <div className="border-4 border-transparent border-t-gray-900"></div>
-                      </div>
-                    </div>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-muted font-serif italic mt-3">
+                last check-in {formatSwedishDateTime(latest.timestamp)}
+              </p>
+            </>
+          )}
+
+          {latestBody && (
+            <>
+              <h3 className="font-serif font-medium text-xl mt-9 mb-3.5 flex items-center gap-3 after:content-[''] after:flex-1 after:h-px after:bg-line">
+                Body
+              </h3>
+              <div className="grid grid-cols-2 gap-3.5">
+                <div className="bg-card border border-line rounded-2xl px-5 py-5">
+                  <div className="text-[13px] text-muted">Weight</div>
+                  <div className="font-serif font-medium text-4xl tracking-tight mt-0.5">
+                    {latestBody.weight ?? '—'}
+                    <span className="text-base text-muted"> kg</span>
                   </div>
                 </div>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">
-                  Last updated: {formatSwedishDateTime(latest.timestamp)}
-                </p>
+                <div className="bg-card border border-line rounded-2xl px-5 py-5">
+                  <div className="text-[13px] text-muted">Body fat</div>
+                  <div className="font-serif font-medium text-4xl tracking-tight mt-0.5">
+                    {latestBody.bodyFatPercentage ?? '—'}
+                    <span className="text-base text-muted"> %</span>
+                  </div>
+                </div>
               </div>
-            </div>
+            </>
           )}
-        </div>
 
-        {session && (
-          <>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-              <ProgressChart entries={session.entries} />
-              <BodyMetrics metrics={session.bodyMetrics} onAddMetric={onAddBodyMetric} />
-            </div>
-
-            <div className="mb-6">
-              <Journal entries={session.notes} onAddEntry={onAddJournalEntry} />
-            </div>
-          </>
-        )}
-
-        {/* Export/Import Section */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-6">
-          <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-4">Data Management</h3>
-          {importError && (
-            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md text-red-700 dark:text-red-400 text-sm">
-              {importError}
-            </div>
-          )}
-          <div className="flex flex-wrap gap-3">
+          <div className="flex gap-3 mt-8 flex-wrap">
             <button
-              onClick={handleExportJSON}
-              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 dark:hover:bg-blue-600 transition duration-200 flex items-center gap-2"
+              onClick={() => setShowCheckinForm(true)}
+              disabled={!session.isActive}
+              className="flex-1 min-w-[140px] bg-clay text-white rounded-xl py-3.5 font-semibold cursor-pointer shadow-[0_6px_18px_rgba(181,100,63,.25)] hover:opacity-90 disabled:opacity-40"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              Export as JSON
+              Add a check-in
             </button>
-            <button
-              onClick={handleExportCSV}
-              className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 dark:hover:bg-green-600 transition duration-200 flex items-center gap-2"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              Export as CSV
-            </button>
+            {session.isActive && (
+              <button
+                onClick={onEndFast}
+                className="flex-1 min-w-[110px] rounded-xl py-3.5 font-semibold border border-line bg-transparent cursor-pointer hover:border-clay hover:text-clay transition-colors"
+              >
+                End fast
+              </button>
+            )}
+            <ShareButton sessionId={session.id} />
           </div>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-3">
-            Export your fasting data for backup or analysis.
-          </p>
-        </div>
 
-          </>
-        )}
+          <div className="mt-9 space-y-6">
+            <ProgressChart entries={session.entries} startTime={session.startTime} />
+            <BodyMetrics metrics={session.bodyMetrics} onAddMetric={onAddBodyMetric} />
+            <Journal entries={session.notes} onAddEntry={onAddJournalEntry} />
+          </div>
 
-        {showCheckinForm && session && (
-          <CheckinForm
-            onSubmit={onAddCheckin}
-            onClose={() => setShowCheckinForm(false)}
-          />
-        )}
+          <div className="bg-card border border-line rounded-2xl px-5 py-5 mt-6">
+            <h3 className="font-serif font-medium text-lg mb-3">Your data, yours</h3>
+            <div className="flex flex-wrap gap-3">
+              <button
+                onClick={() => session && exportSessionData(session)}
+                className="px-4 py-2.5 rounded-xl border border-line bg-transparent font-semibold text-sm cursor-pointer hover:border-muted"
+              >
+                Export as JSON
+              </button>
+              <button
+                onClick={() => session && exportSessionDataAsCSV(session)}
+                className="px-4 py-2.5 rounded-xl border border-line bg-transparent font-semibold text-sm cursor-pointer hover:border-muted"
+              >
+                Export as CSV
+              </button>
+            </div>
+          </div>
 
-        {showNewSessionDialog && (
-          <NewSessionDialog
-            onCreateSession={onCreateNewSession}
-            onClose={() => setShowNewSessionDialog(false)}
-          />
-        )}
-      </div>
+          <div className="text-center mt-10 text-xs text-muted font-serif italic">
+            Kept privately · shared only by link
+          </div>
+        </>
+      )}
+
+      {showCheckinForm && session && (
+        <CheckinForm
+          onSubmit={onAddCheckin}
+          onClose={() => setShowCheckinForm(false)}
+          subheading={`${dayLabel} of ${session.name}`}
+        />
+      )}
+
+      {showNewSessionDialog && (
+        <NewSessionDialog
+          onCreateSession={onCreateNewSession}
+          onClose={() => setShowNewSessionDialog(false)}
+        />
+      )}
     </div>
   );
 };
