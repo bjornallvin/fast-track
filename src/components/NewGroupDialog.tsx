@@ -3,7 +3,7 @@
 import { useState } from 'react';
 
 interface NewGroupDialogProps {
-  onCreateGroup: (name: string, startTime: Date, targetDuration: number) => void;
+  onCreateGroup: (name: string, startTime: Date, targetDuration: number, email?: string) => void;
   onClose: () => void;
 }
 
@@ -12,6 +12,7 @@ const NewGroupDialog: React.FC<NewGroupDialogProps> = ({ onCreateGroup, onClose 
   const now = new Date();
   const pad = (n: number) => String(n).padStart(2, '0');
   const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
   const [startTime, setStartTime] = useState(
     `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`
   );
@@ -20,7 +21,7 @@ const NewGroupDialog: React.FC<NewGroupDialogProps> = ({ onCreateGroup, onClose 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
-    onCreateGroup(name.trim(), new Date(startTime), Number(targetDuration));
+    onCreateGroup(name.trim(), new Date(startTime), Number(targetDuration), email.trim() || undefined);
   };
 
   return (
@@ -51,6 +52,18 @@ const NewGroupDialog: React.FC<NewGroupDialogProps> = ({ onCreateGroup, onClose 
           className="w-full px-3.5 py-2.5 border border-line rounded-xl bg-white mb-4"
           maxLength={60}
           autoFocus
+        />
+
+        <label className="block font-semibold text-sm mb-1" htmlFor="group-email">
+          Your email <span className="text-muted font-normal">(optional — we send you the organizer link)</span>
+        </label>
+        <input
+          id="group-email"
+          type="email"
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+          placeholder="you@example.com"
+          className="w-full px-3.5 py-2.5 border border-line rounded-xl bg-white mb-4"
         />
 
         <label className="block font-semibold text-sm mb-1" htmlFor="group-start">

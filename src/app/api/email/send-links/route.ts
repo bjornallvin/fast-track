@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server';
 import * as brevo from '@getbrevo/brevo';
 import { kv } from '@vercel/kv';
 import * as React from 'react';
-import type { FastingSession } from '@/types';
-import { SessionLinksEmail } from '@/components/email/SessionLinksEmail';
+import type { FastingSession, GroupSession } from '@/types';
+import { SessionLinksEmail, type GroupLinkData } from '@/components/email/SessionLinksEmail';
 import { render } from '@react-email/render';
 
 // Initialize Brevo
@@ -55,7 +55,39 @@ export async function POST(request: Request) {
       }
     } while (cursor !== 0 && cursor !== '0');
 
-    if (sessions.length === 0) {
+    // Also scan group fasts: organizer links + participant report links
+    const baseUrlForGroups = process.env.NEXT_PUBLIC_BASE_URL || 'https://fast-tracking.vercel.app';
+    const groupLinks: GroupLinkData[] = [];
+    cursor = 0;
+    do {
+      const result: [string | number, string[]] = await kv.scan(cursor, { match: 'group:*', count: 100 });
+      cursor = result[0];
+      for (const key of result[1] as string[]) {
+        const group = await kv.get<GroupSession>(key);
+        if (!group) continue;
+        const isActive = !group.endTime;
+        if (group.email && group.email.toLowerCase() === normalizedEmail) {
+          groupLinks.push({
+            groupName: group.name,
+            role: 'organizer',
+            url: `${baseUrlForGroups}/group/${group.editToken}/${group.id}`,
+            isActive,
+          });
+        }
+        for (const p of group.participants) {
+          if (p.email && p.email.toLowerCase() === normalizedEmail) {
+            groupLinks.push({
+              groupName: group.name,
+              role: `reporting as ${p.name}`,
+              url: `${baseUrlForGroups}/group/report/${p.reportToken}/${group.id}`,
+              isActive,
+            });
+          }
+        }
+      }
+    } while (cursor !== 0 && cursor !== '0');
+
+    if (sessions.length === 0 && groupLinks.length === 0) {
       return NextResponse.json(
         { error: 'No sessions found' },
         { status: 404 }
@@ -76,7 +108,7 @@ export async function POST(request: Request) {
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://fast-tracking.vercel.app';
 
     // Render email HTML using React Email
-    const emailElement = SessionLinksEmail({ sessions: sessionData, baseUrl }) as React.ReactElement;
+    const emailElement = SessionLinksEmail({ sessions: sessionData, groupLinks, baseUrl }) as React.ReactElement;
     const emailHtml = await render(emailElement);
 
     // Get sender info from environment variables
@@ -107,7 +139,8 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       sessionCount: sessions.length,
-      message: `Sent ${sessions.length} session link(s) to ${email}`
+      groupCount: groupLinks.length,
+      message: `Sent ${sessions.length + groupLinks.length} link(s) to ${email}`
     });
   } catch (error) {
     console.error('Error sending email:', error);

@@ -59,11 +59,12 @@ const Dashboard: React.FC<DashboardProps> = ({
     return [...session.entries].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0];
   }, [session]);
 
-  const latestBody = useMemo(() => {
-    if (!session || session.bodyMetrics.length === 0) return null;
-    return [...session.bodyMetrics].sort(
+  const [latestBody, previousBody] = useMemo(() => {
+    if (!session || session.bodyMetrics.length === 0) return [null, null];
+    const sorted = [...session.bodyMetrics].sort(
       (a, b) => b.timestamp.getTime() - a.timestamp.getTime()
-    )[0];
+    );
+    return [sorted[0], sorted[1] ?? null];
   }, [session]);
 
   const dayLabel = useMemo(() => {
@@ -165,6 +166,16 @@ const Dashboard: React.FC<DashboardProps> = ({
                     {latestBody.weight ?? '—'}
                     <span className="text-base text-muted"> kg</span>
                   </div>
+                  {latestBody.weight !== undefined && previousBody?.weight !== undefined && (
+                    <div
+                      className={`text-sm mt-1 ${
+                        latestBody.weight <= previousBody.weight ? 'text-sage' : 'text-clay'
+                      }`}
+                    >
+                      {latestBody.weight <= previousBody.weight ? '↓' : '↑'}{' '}
+                      {Math.abs(latestBody.weight - previousBody.weight).toFixed(1)} kg since last
+                    </div>
+                  )}
                 </div>
                 <div className="bg-card border border-line rounded-2xl px-5 py-5">
                   <div className="text-[13px] text-muted">Body fat</div>
@@ -172,6 +183,22 @@ const Dashboard: React.FC<DashboardProps> = ({
                     {latestBody.bodyFatPercentage ?? '—'}
                     <span className="text-base text-muted"> %</span>
                   </div>
+                  {latestBody.bodyFatPercentage !== undefined &&
+                    previousBody?.bodyFatPercentage !== undefined && (
+                      <div
+                        className={`text-sm mt-1 ${
+                          latestBody.bodyFatPercentage <= previousBody.bodyFatPercentage
+                            ? 'text-sage'
+                            : 'text-clay'
+                        }`}
+                      >
+                        {latestBody.bodyFatPercentage <= previousBody.bodyFatPercentage ? '↓' : '↑'}{' '}
+                        {Math.abs(
+                          latestBody.bodyFatPercentage - previousBody.bodyFatPercentage
+                        ).toFixed(1)}
+                        % since last
+                      </div>
+                    )}
                 </div>
               </div>
             </>

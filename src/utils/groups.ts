@@ -30,8 +30,8 @@ export function rehydrateGroup(group: GroupSession): GroupSession {
   };
 }
 
-// Strip every token before anything leaves the server (requirement 6),
-// resolving the caller's role from the token they presented.
+// Strip every token and email before anything leaves the server
+// (requirement 6 + PII), resolving the caller's role from the token presented.
 export function toPublic(group: GroupSession, token: string | null): GroupSessionPublic {
   const matched = token ? group.participants.find(p => p.reportToken === token) : undefined;
   const role = token && token === group.editToken ? 'organizer' : matched ? 'participant' : 'viewer';
@@ -42,7 +42,9 @@ export function toPublic(group: GroupSession, token: string | null): GroupSessio
     targetDuration: group.targetDuration,
     endTime: group.endTime ?? null,
     createdAt: group.createdAt,
-    participants: group.participants.map(({ reportToken: _reportToken, ...rest }) => rest),
+    participants: group.participants.map(
+      ({ reportToken: _reportToken, email: _email, ...rest }) => rest
+    ),
     role,
     ...(matched ? { participantId: matched.id } : {}),
   };

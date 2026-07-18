@@ -105,7 +105,8 @@ export default function Home() {
   const handleCreateGroup = async (
     name: string,
     startTime: Date,
-    targetDuration: number
+    targetDuration: number,
+    email?: string
   ) => {
     const groupId = generateSessionId();
     const editToken = generateEditToken();
@@ -113,7 +114,7 @@ export default function Home() {
       const response = await fetch(`/api/groups/${groupId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, startTime, targetDuration, editToken }),
+        body: JSON.stringify({ name, startTime, targetDuration, editToken, email }),
       });
       if (!response.ok) throw new Error('Create failed');
       saveGroupLink({
@@ -375,6 +376,18 @@ export default function Home() {
               Effects on Health, Aging, and Disease
             </a>
           </div>
+        </div>
+
+        {sectionHeading('What Fast·Track does', 'quietly, in your browser')}
+        <div className="bg-card border border-line rounded-2xl px-6 py-5 mb-9">
+          <ul className="space-y-2 text-[15px]">
+            <li className="flex gap-2.5"><span className="text-ochre">✓</span>Real-time progress tracking on a shared or solo clock</li>
+            <li className="flex gap-2.5"><span className="text-ochre">✓</span>5 wellness metrics, hour by hour</li>
+            <li className="flex gap-2.5"><span className="text-ochre">✓</span>Body composition tracking</li>
+            <li className="flex gap-2.5"><span className="text-ochre">✓</span>Journal with tagging</li>
+            <li className="flex gap-2.5"><span className="text-ochre">✓</span>Group fasts — everyone on one timeline, compared</li>
+            <li className="flex gap-2.5"><span className="text-ochre">✓</span>Shareable read-only views · JSON/CSV export</li>
+          </ul>
         </div>
 
         {sectionHeading('What happens inside', 'hour by hour')}

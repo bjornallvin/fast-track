@@ -1,7 +1,11 @@
 import { kv } from '@vercel/kv';
 import { NextResponse } from 'next/server';
+import * as React from 'react';
+import { render } from '@react-email/render';
 import type { GroupSession } from '@/types';
 import { GROUP_TTL, rehydrateGroup, toPublic } from '@/utils/groups';
+import { sendEmail, getBaseUrl, EMAIL_REGEX } from '@/utils/sendEmail';
+import { GroupLinkEmail } from '@/components/email/GroupLinkEmail';
 
 // GET: load group; ?token= resolves the caller's role (tokens never returned)
 export async function GET(
@@ -38,7 +42,7 @@ export async function POST(
     const existing = await kv.get<GroupSession>(`group:${id}`);
 
     if (!existing) {
-      const { name, startTime, targetDuration, editToken } = body;
+      const { name, startTime, targetDuration, editToken, email } = body;
       if (!name || !startTime || !targetDuration || !editToken) {
         return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
       }
@@ -50,9 +54,30 @@ export async function POST(
         endTime: null,
         createdAt: new Date(),
         editToken,
+        ...(email && EMAIL_REGEX.test(email) ? { email: email.toLowerCase() } : {}),
         participants: [],
       };
       await kv.set(`group:${id}`, group, { ex: GROUP_TTL });
+
+      // Email the organizer their edit link — creation succeeds regardless
+      if (group.email) {
+        try {
+          const html = await render(
+            GroupLinkEmail({
+              kind: 'organizer',
+              groupName: name,
+              groupId: id,
+              token: editToken,
+              startTime,
+              targetDuration,
+              baseUrl: getBaseUrl(),
+            }) as React.ReactElement
+          );
+          await sendEmail(group.email, `Your organizer link for ${name} — Fast Track`, html);
+        } catch (err) {
+          console.error('Failed to send organizer-link email:', err);
+        }
+      }
       return NextResponse.json({ success: true, id });
     }
 

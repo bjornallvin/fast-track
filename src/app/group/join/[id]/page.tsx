@@ -12,6 +12,7 @@ export default function GroupJoinPage() {
   const groupId = params.id as string;
   const { group, loading, error } = useGroupData(groupId, null);
   const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
   const [joining, setJoining] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
 
@@ -24,7 +25,7 @@ export default function GroupJoinPage() {
       const response = await fetch(`/api/groups/${groupId}/join`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim() }),
+        body: JSON.stringify({ name: name.trim(), email: email.trim() || undefined }),
       });
       const data = await response.json();
       if (!response.ok) {
@@ -108,6 +109,17 @@ export default function GroupJoinPage() {
             className="w-full px-4 py-3 border border-line rounded-xl bg-white mb-4"
             maxLength={40}
             autoFocus
+          />
+          <label className="block font-semibold text-[15px] mb-2" htmlFor="join-email">
+            Email <span className="text-muted font-normal text-sm">(optional — we send you your own link)</span>
+          </label>
+          <input
+            id="join-email"
+            type="email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            placeholder="you@example.com"
+            className="w-full px-4 py-3 border border-line rounded-xl bg-white mb-4"
           />
           {joinError && (
             <p className="text-clay text-sm mb-4">{joinError}</p>

@@ -51,6 +51,7 @@ export interface GroupSession {
   endTime?: Date | null; // shared — one end for the whole group
   createdAt: Date;
   editToken: string; // organizer edit access
+  email?: string; // organizer email, for link recovery/sendout
   participants: GroupParticipant[];
 }
 
@@ -59,14 +60,15 @@ export interface GroupParticipant {
   name: string; // display name (disambiguated if colliding)
   color?: string; // assigned chart color
   reportToken: string; // lets this person log their own data
+  email?: string; // optional, for report-link sendout/recovery
   joinedAt: Date;
   entries: CheckinEntry[];
   bodyMetrics: BodyMetric[];
   notes?: JournalEntry[];
 }
 
-// What the API returns to clients: same shape but with all tokens stripped,
-// plus the caller's resolved role (based on the token they presented).
+// What the API returns to clients: same shape but with all tokens AND
+// emails stripped, plus the caller's resolved role (from the token presented).
 export interface GroupSessionPublic {
   id: string;
   name: string;
@@ -74,7 +76,7 @@ export interface GroupSessionPublic {
   targetDuration: number;
   endTime?: Date | null;
   createdAt: Date;
-  participants: Omit<GroupParticipant, 'reportToken'>[];
+  participants: Omit<GroupParticipant, 'reportToken' | 'email'>[];
   role: 'organizer' | 'participant' | 'viewer';
   participantId?: string; // set when role === 'participant'
 }

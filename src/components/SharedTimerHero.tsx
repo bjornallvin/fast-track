@@ -2,7 +2,18 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { calculateElapsedTime } from '../utils/calculations';
-import { formatSwedishTime, formatSwedishDateTime } from '../utils/dateFormat';
+import {
+  formatSwedishTime,
+  formatSwedishDate,
+  formatSwedishDateTime,
+} from '../utils/dateFormat';
+
+// HH:MM for same-day fasts; add the date once the fast spans days
+function formatPoint(date: Date, multiDay: boolean): string {
+  return multiDay
+    ? `${formatSwedishDate(date).slice(5)} ${formatSwedishTime(date)}`
+    : formatSwedishTime(date);
+}
 
 interface SharedTimerHeroProps {
   eyebrow: string;
@@ -54,6 +65,21 @@ const SharedTimerHero: React.FC<SharedTimerHeroProps> = ({
   );
 
   const clock = `${elapsed.hours}:${String(elapsed.minutes).padStart(2, '0')}`;
+  const multiDay = targetDuration > 24;
+
+  // Milestones: 8h/16h/target for short fasts, one per day for longer ones
+  const milestones = useMemo(() => {
+    if (targetDuration <= 24) {
+      return [8, 16, targetDuration]
+        .filter((h, i, arr) => h <= targetDuration && arr.indexOf(h) === i)
+        .map(h => ({ label: `${h}h`, hours: h }));
+    }
+    const days = Math.ceil(targetDuration / 24);
+    return Array.from({ length: days }, (_, i) => {
+      const hours = Math.min((i + 1) * 24, targetDuration);
+      return { label: hours % 24 === 0 ? `${hours / 24}d` : `${hours}h`, hours };
+    });
+  }, [targetDuration]);
 
   return (
     <div className="bg-card border border-line rounded-2xl px-8 py-7 text-center">
@@ -74,16 +100,36 @@ const SharedTimerHero: React.FC<SharedTimerHeroProps> = ({
         <i style={{ width: `${elapsed.percentage}%` }} />
       </div>
       <div className="flex justify-between text-xs text-muted mt-2 max-w-md mx-auto">
-        <span>Start {formatSwedishTime(startTime)}</span>
+        <span>Start {formatPoint(startTime, multiDay)}</span>
         <span>
           {elapsed.hours}h {elapsed.minutes}m in
         </span>
         <span>
           {endTime
-            ? `Ended ${formatSwedishTime(endTime)}`
-            : `Ends ~${formatSwedishTime(targetEnd)}`}
+            ? `Ended ${formatPoint(endTime, multiDay)}`
+            : `Ends ~${formatPoint(targetEnd, multiDay)}`}
         </span>
       </div>
+      {milestones.length > 1 && (
+        <div className="flex justify-center gap-2 mt-4 flex-wrap">
+          {milestones.map(m => {
+            const reached = elapsed.totalHours >= m.hours;
+            return (
+              <span
+                key={m.hours}
+                className={`text-xs px-2.5 py-1 rounded-full border ${
+                  reached
+                    ? 'bg-sage border-sage text-white font-semibold'
+                    : 'border-line text-muted'
+                }`}
+              >
+                {reached ? '✓ ' : ''}
+                {m.label}
+              </span>
+            );
+          })}
+        </div>
+      )}
       {!isActive && (
         <div className="mt-4 inline-block text-sm font-serif italic text-sage">
           fast completed · {formatSwedishDateTime(endTime!)}

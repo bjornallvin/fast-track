@@ -18,6 +18,9 @@ export default function GroupOrganizerPage() {
   const groupId = params.id as string;
   const { group, loading, error, refresh } = useGroupData(groupId, token);
   const [copied, setCopied] = useState<string | null>(null);
+  const [inviteEmails, setInviteEmails] = useState('');
+  const [inviteStatus, setInviteStatus] = useState<string | null>(null);
+  const [inviting, setInviting] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [editName, setEditName] = useState('');
   const [editStart, setEditStart] = useState('');
@@ -57,6 +60,36 @@ export default function GroupOrganizerPage() {
       return response.ok;
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleInvite = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const emails = inviteEmails.split(/[,\s]+/).filter(Boolean);
+    if (emails.length === 0) return;
+    setInviting(true);
+    setInviteStatus(null);
+    try {
+      const response = await fetch(`/api/groups/${groupId}/invite`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, emails }),
+      });
+      const data = await response.json();
+      if (response.ok && data.sent > 0) {
+        setInviteStatus(
+          `Sent ${data.sent} invitation${data.sent === 1 ? '' : 's'}${
+            data.failed?.length ? ` — ${data.failed.length} failed` : ''
+          }.`
+        );
+        setInviteEmails('');
+      } else {
+        setInviteStatus(data.error ?? 'Could not send invitations.');
+      }
+    } catch {
+      setInviteStatus('Could not send invitations.');
+    } finally {
+      setInviting(false);
     }
   };
 
@@ -181,6 +214,33 @@ export default function GroupOrganizerPage() {
           the join link lets people enter the fast and report their own data · the
           read-only link only watches
         </p>
+        {!group.endTime && (
+          <form onSubmit={handleInvite} className="mt-4 pt-4 border-t border-line">
+            <label className="block font-semibold text-sm mb-2" htmlFor="invite-emails">
+              Invite by email
+            </label>
+            <div className="flex gap-2.5 flex-wrap">
+              <input
+                id="invite-emails"
+                type="text"
+                value={inviteEmails}
+                onChange={e => setInviteEmails(e.target.value)}
+                placeholder="anna@example.com, mattias@example.com"
+                className="flex-1 min-w-[200px] px-3.5 py-2.5 border border-line rounded-xl bg-white text-sm"
+              />
+              <button
+                type="submit"
+                disabled={inviting || !inviteEmails.trim()}
+                className="px-4.5 py-2.5 rounded-xl border border-clay text-clay font-semibold text-sm cursor-pointer hover:bg-clay hover:text-white transition-colors disabled:opacity-50"
+              >
+                {inviting ? 'Sending…' : 'Send invites'}
+              </button>
+            </div>
+            {inviteStatus && (
+              <p className="text-sm text-muted font-serif italic mt-2.5">{inviteStatus}</p>
+            )}
+          </form>
+        )}
       </div>
 
       <h3 className="font-serif font-medium text-lg mb-3 flex items-center gap-3 after:content-[''] after:flex-1 after:h-px after:bg-line">

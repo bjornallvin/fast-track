@@ -9,13 +9,22 @@ interface SessionData {
   targetDuration: number;
 }
 
+export interface GroupLinkData {
+  groupName: string;
+  role: string; // 'organizer' or 'reporting as <name>'
+  url: string;
+  isActive: boolean;
+}
+
 interface SessionLinksEmailProps {
   sessions: SessionData[];
+  groupLinks?: GroupLinkData[];
   baseUrl: string;
 }
 
 export const SessionLinksEmail: React.FC<SessionLinksEmailProps> = ({
   sessions,
+  groupLinks = [],
   baseUrl
 }) => {
   // Tailwind-inspired inline styles for email compatibility
@@ -164,7 +173,7 @@ export const SessionLinksEmail: React.FC<SessionLinksEmailProps> = ({
           </div>
 
           <p style={styles.intro}>
-            Here are all your fasting sessions. Click the links below to access them:
+            Here are all your fasting {groupLinks.length > 0 ? 'sessions and group fasts' : 'sessions'}. Click the links below to access them:
           </p>
 
           {sessions.map((session) => (
@@ -221,6 +230,34 @@ export const SessionLinksEmail: React.FC<SessionLinksEmailProps> = ({
                     style={styles.rawLink}
                   >
                     {`${baseUrl}/view/${session.id}`}
+                  </a>
+                </p>
+              </div>
+            </div>
+          ))}
+
+          {groupLinks.map((link, idx) => (
+            <div
+              key={`group-${idx}`}
+              style={link.isActive ? styles.sessionCardActive : styles.sessionCard}
+            >
+              <div style={styles.sessionName}>
+                {link.groupName}
+                <span style={link.isActive ? styles.badgeActive : styles.badgeEnded}>
+                  {link.isActive ? 'GROUP · ACTIVE' : 'GROUP · ENDED'}
+                </span>
+              </div>
+              <div style={styles.sessionInfo}>Your role: {link.role}</div>
+              <div>
+                <a href={link.url} style={styles.buttonPrimary}>
+                  Open Group Fast
+                </a>
+              </div>
+              <div style={styles.linkBlock}>
+                <p>
+                  Link:{' '}
+                  <a href={link.url} style={styles.rawLink}>
+                    {link.url}
                   </a>
                 </p>
               </div>

@@ -16,13 +16,45 @@ const SCALE_FIELDS: {
   label: string;
   low: string;
   high: string;
+  hint: string;
   clay?: boolean;
 }[] = [
-  { key: 'energy', label: 'Energy', low: 'drained', high: 'wired' },
-  { key: 'hunger', label: 'Hunger', low: 'satisfied', high: 'ravenous', clay: true },
-  { key: 'mentalClarity', label: 'Mental clarity', low: 'foggy', high: 'sharp' },
-  { key: 'mood', label: 'Mood', low: 'low', high: 'bright' },
-  { key: 'physicalComfort', label: 'Physical comfort', low: 'uncomfortable', high: 'at ease' },
+  {
+    key: 'energy',
+    label: 'Energy',
+    low: 'drained',
+    high: 'wired',
+    hint: 'Your overall energy level and ability to perform daily activities',
+  },
+  {
+    key: 'hunger',
+    label: 'Hunger',
+    low: 'satisfied',
+    high: 'ravenous',
+    clay: true,
+    hint: 'How strong your hunger sensations are (1 = none, 10 = extreme)',
+  },
+  {
+    key: 'mentalClarity',
+    label: 'Mental clarity',
+    low: 'foggy',
+    high: 'sharp',
+    hint: 'Your ability to think clearly, focus, and concentrate',
+  },
+  {
+    key: 'mood',
+    label: 'Mood',
+    low: 'low',
+    high: 'bright',
+    hint: 'Your emotional state and overall feeling of well-being',
+  },
+  {
+    key: 'physicalComfort',
+    label: 'Physical comfort',
+    low: 'uncomfortable',
+    high: 'at ease',
+    hint: 'Your physical comfort level — absence of pain or discomfort',
+  },
 ];
 
 // Warm 1–10 button scales per the redesign mock (replaces the old sliders)
@@ -63,7 +95,9 @@ const CheckinForm: React.FC<CheckinFormProps> = ({
         {SCALE_FIELDS.map(field => (
           <div key={field.key}>
             <div className="flex justify-between items-baseline mb-2.5">
-              <span className="font-semibold text-[15px]">{field.label}</span>
+              <span className="font-semibold text-[15px] cursor-help" title={field.hint}>
+                {field.label}
+              </span>
               <span className="font-serif font-medium text-2xl text-clay" style={{ fontVariantNumeric: 'tabular-nums' }}>
                 {formData[field.key]}
                 <span className="text-sm text-muted font-sans">/10</span>
