@@ -356,6 +356,61 @@ export default function Home() {
         )}
       </div>
 
+      <div className="mt-12">
+        {sectionHeading('Why fast', 'what the research says')}
+        <div className="bg-card border border-line rounded-2xl px-6 py-5 mb-9">
+          <ul className="space-y-2 text-[15px]">
+            <li className="flex gap-2.5"><span className="text-sage">•</span>Better blood sugar control</li>
+            <li className="flex gap-2.5"><span className="text-sage">•</span>Lower blood pressure and heart rate</li>
+            <li className="flex gap-2.5"><span className="text-sage">•</span>Reduced inflammation in the body</li>
+            <li className="flex gap-2.5"><span className="text-sage">•</span>Weight loss and less belly fat</li>
+            <li className="flex gap-2.5"><span className="text-sage">•</span>May improve brain function (still being studied)</li>
+          </ul>
+          <div className="mt-4 pt-4 border-t border-line text-xs">
+            <span className="text-muted font-serif italic">learn more: </span>
+            <a href="https://www.nejm.org/doi/full/10.1056/NEJMra1905136" target="_blank" rel="noopener noreferrer" className="text-clay underline mr-3">
+              NEJM — Effects of Intermittent Fasting
+            </a>
+            <a href="https://pubmed.ncbi.nlm.nih.gov/31614992/" target="_blank" rel="noopener noreferrer" className="text-clay underline">
+              Effects on Health, Aging, and Disease
+            </a>
+          </div>
+        </div>
+
+        {sectionHeading('What happens inside', 'hour by hour')}
+        <div className="flex flex-col gap-2.5 mb-4">
+          {[
+            { hours: '0–4h', title: 'After eating', text: 'Body processes food, stores energy for later use' },
+            { hours: '4–16h', title: 'Early fasting', text: 'Body starts using stored sugar, making new energy' },
+            { hours: '12–18h', title: 'Sugar stores running low', text: 'Liver sugar mostly used up, body starts burning more fat' },
+            { hours: '18–24h', title: 'Fat burning mode', text: 'Body switches to burning fat for energy' },
+            { hours: '48–72h', title: 'Extended fasting', text: 'Fat burning peaks, growth hormone rises, cell cleanup increases' },
+          ].map(phase => (
+            <div key={phase.hours} className="flex items-center gap-4 bg-card border border-line rounded-2xl px-5 py-3.5">
+              <span className="font-serif font-medium text-clay text-lg w-16 shrink-0 text-right" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                {phase.hours}
+              </span>
+              <div>
+                <div className="font-semibold text-[15px]">{phase.title}</div>
+                <div className="text-[13px] text-muted">{phase.text}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-muted font-serif italic mb-4">
+          based on scientific literature — individual responses vary ·{' '}
+          <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5783752/" target="_blank" rel="noopener noreferrer" className="underline">Anton 2018</a> ·{' '}
+          <a href="https://www.cell.com/cell-metabolism/fulltext/S1550-4131(15)00224-7" target="_blank" rel="noopener noreferrer" className="underline">Mattson 2018</a> ·{' '}
+          <a href="https://pubmed.ncbi.nlm.nih.gov/30172870/" target="_blank" rel="noopener noreferrer" className="underline">Levine 2017</a> ·{' '}
+          <a href="https://www.annualreviews.org/doi/10.1146/annurev-nutr-071816-064634" target="_blank" rel="noopener noreferrer" className="underline">Panda 2016</a>
+        </p>
+        <div className="bg-card border border-ochre/60 rounded-2xl px-5 py-4 text-[13px] text-muted">
+          <b className="text-ink">A word of care:</b> fasting isn&apos;t for everyone. Talk to a healthcare
+          provider first — especially with diabetes, medications, pregnancy or nursing, or a history
+          of eating disorders.
+        </div>
+      </div>
+
       <div className="text-center mt-11 text-xs text-muted font-serif italic">
         No accounts. Your fasts live in this browser and sync by link.
       </div>
