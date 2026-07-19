@@ -40,6 +40,82 @@ interface AdminGroup {
 
 const TOKEN_KEY = 'adminToken';
 
+// Click the email (or —) to edit in place; empty save clears it
+const EditableEmail: React.FC<{
+  value: string | null;
+  onSave: (email: string) => Promise<boolean>;
+}> = ({ value, onSave }) => {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  if (!editing) {
+    return (
+      <button
+        onClick={() => {
+          setDraft(value ?? '');
+          setFailed(false);
+          setEditing(true);
+        }}
+        className={`cursor-pointer underline decoration-dotted underline-offset-2 ${
+          value ? 'text-ink' : 'text-muted'
+        } hover:text-clay`}
+        title="Edit email"
+      >
+        {value ?? 'add email'}
+      </button>
+    );
+  }
+
+  const save = async () => {
+    setBusy(true);
+    setFailed(false);
+    const ok = await onSave(draft.trim());
+    setBusy(false);
+    if (ok) setEditing(false);
+    else setFailed(true);
+  };
+
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <input
+        type="email"
+        value={draft}
+        onChange={e => setDraft(e.target.value)}
+        onKeyDown={e => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            save();
+          }
+          if (e.key === 'Escape') setEditing(false);
+        }}
+        placeholder="empty = remove"
+        className={`px-2 py-1 border rounded-lg bg-white text-[13px] w-48 ${
+          failed ? 'border-clay' : 'border-line'
+        }`}
+        autoFocus
+      />
+      <button
+        onClick={save}
+        disabled={busy}
+        className="text-sage font-semibold cursor-pointer disabled:opacity-50"
+        title="Save"
+      >
+        {busy ? '…' : '✓'}
+      </button>
+      <button
+        onClick={() => setEditing(false)}
+        className="text-muted cursor-pointer"
+        title="Cancel"
+      >
+        ×
+      </button>
+      {failed && <span className="text-clay text-xs">invalid</span>}
+    </span>
+  );
+};
+
 export default function AdminPage() {
   const [token, setToken] = useState('');
   const [input, setInput] = useState('');
@@ -84,6 +160,41 @@ export default function AdminPage() {
     const stored = localStorage.getItem(TOKEN_KEY);
     if (stored) load(stored);
   }, [load]);
+
+  const setEmail = async (
+    kind: 'session' | 'group' | 'participant',
+    id: string,
+    email: string,
+    participantId?: string
+  ): Promise<boolean> => {
+    const response = await fetch('/api/admin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, action: 'set-email', kind, id, participantId, email }),
+    });
+    if (!response.ok) return false;
+    const saved = email.trim().toLowerCase() || null;
+    if (kind === 'session') {
+      setSessions(prev => prev?.map(s => (s.id === id ? { ...s, email: saved } : s)) ?? null);
+    } else if (kind === 'group') {
+      setGroups(prev => prev?.map(g => (g.id === id ? { ...g, email: saved } : g)) ?? null);
+    } else {
+      setGroups(
+        prev =>
+          prev?.map(g =>
+            g.id === id
+              ? {
+                  ...g,
+                  participants: g.participants.map(p =>
+                    p.id === participantId ? { ...p, email: saved } : p
+                  ),
+                }
+              : g
+          ) ?? null
+      );
+    }
+    return true;
+  };
 
   const remove = async (kind: 'session' | 'group', id: string, label: string) => {
     if (!confirm(`Delete ${kind} "${label}" (${id})? This cannot be undone.`)) return;
@@ -219,7 +330,11 @@ export default function AdminPage() {
                   </div>
                   <div className="text-[13px] text-muted mt-0.5">
                     {g.id} · start {formatSwedishDateTime(new Date(g.startTime))} · {g.targetDuration}h
-                    {g.email && <> · organizer {g.email}</>}
+                    {' · organizer '}
+                    <EditableEmail
+                      value={g.email}
+                      onSave={email => setEmail('group', g.id, email)}
+                    />
                   </div>
                 </div>
                 <div className="flex gap-3 items-center text-sm">
@@ -253,7 +368,12 @@ export default function AdminPage() {
                       {g.participants.map(p => (
                         <tr key={p.id}>
                           <td className="pr-4 py-1 font-medium">{p.name}</td>
-                          <td className="pr-4 py-1 text-muted">{p.email ?? '—'}</td>
+                          <td className="pr-4 py-1 text-muted">
+                            <EditableEmail
+                              value={p.email}
+                              onSave={email => setEmail('participant', g.id, email, p.id)}
+                            />
+                          </td>
                           <td className="pr-4 py-1">{p.checkins}</td>
                           <td className="pr-4 py-1">{p.bodyMetrics}</td>
                           <td className="py-1">
@@ -305,7 +425,12 @@ export default function AdminPage() {
                   <td className="pr-4 py-2">
                     {s.checkins} · {s.bodyMetrics}b · {s.notes}j
                   </td>
-                  <td className="pr-4 py-2 text-muted">{s.email ?? '—'}</td>
+                  <td className="pr-4 py-2 text-muted">
+                    <EditableEmail
+                      value={s.email}
+                      onSave={email => setEmail('session', s.id, email)}
+                    />
+                  </td>
                   <td className="pr-4 py-2">
                     <span className={s.isActive ? 'text-sage font-semibold' : 'text-muted'}>
                       {s.isActive ? 'live' : 'ended'}

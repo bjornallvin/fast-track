@@ -1,10 +1,15 @@
 import { kv } from '@vercel/kv';
 import { NextResponse } from 'next/server';
 import type { FastingSession, GroupSession } from '@/types';
+import { EMAIL_REGEX } from '@/utils/sendEmail';
+
+const SESSION_TTL = 7776000; // keep the same 90-day expiry on rewrite
 
 // Admin API — everything requires the ADMIN_TOKEN env secret.
 // POST body: { token, action: 'overview' } |
-//            { token, action: 'delete', kind: 'session' | 'group', id }
+//            { token, action: 'delete', kind: 'session' | 'group', id } |
+//            { token, action: 'set-email', kind: 'session' | 'group' | 'participant',
+//              id, participantId?, email }   — empty email clears it
 // Token travels in the body (never a URL) to keep it out of logs.
 
 async function scanKeys(match: string): Promise<string[]> {
@@ -87,6 +92,48 @@ export async function POST(request: Request) {
       }
       await kv.del(`${kind}:${id}`);
       return NextResponse.json({ success: true });
+    }
+
+    if (body.action === 'set-email') {
+      const { kind, id, participantId } = body;
+      const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
+      if (email && !EMAIL_REGEX.test(email)) {
+        return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
+      }
+      if (!id || typeof id !== 'string') {
+        return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
+      }
+
+      if (kind === 'session') {
+        const session = await kv.get<FastingSession>(`session:${id}`);
+        if (!session) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+        const updated = { ...session, email: email || undefined };
+        await kv.set(`session:${id}`, updated, { ex: SESSION_TTL });
+        return NextResponse.json({ success: true, email: email || null });
+      }
+
+      if (kind === 'group' || kind === 'participant') {
+        const group = await kv.get<GroupSession>(`group:${id}`);
+        if (!group) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+        let updated: GroupSession;
+        if (kind === 'group') {
+          updated = { ...group, email: email || undefined };
+        } else {
+          if (!group.participants.some(p => p.id === participantId)) {
+            return NextResponse.json({ error: 'Participant not found' }, { status: 404 });
+          }
+          updated = {
+            ...group,
+            participants: group.participants.map(p =>
+              p.id === participantId ? { ...p, email: email || undefined } : p
+            ),
+          };
+        }
+        await kv.set(`group:${id}`, updated, { ex: SESSION_TTL });
+        return NextResponse.json({ success: true, email: email || null });
+      }
+
+      return NextResponse.json({ error: 'Invalid kind' }, { status: 400 });
     }
 
     return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
