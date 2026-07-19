@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Fraunces, Inter } from "next/font/google";
 import Footer from "@/components/Footer";
+import AdminLink from "@/components/AdminLink";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -36,6 +37,7 @@ export default function RootLayout({
         className={`${fraunces.variable} ${inter.variable} antialiased min-h-full flex flex-col`}
         suppressHydrationWarning={true}
       >
+        <AdminLink />
         <div className="flex-grow">
           {children}
         </div>
