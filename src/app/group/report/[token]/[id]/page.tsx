@@ -16,7 +16,8 @@ export default function GroupReportPage() {
   const token = params.token as string;
   const groupId = params.id as string;
   const { group, loading, error, refresh } = useGroupData(groupId, token);
-  const [saved, setSaved] = useState<string | null>(null);
+  const [checkinStatus, setCheckinStatus] = useState<{ ok: boolean; text: string } | null>(null);
+  const [bodyStatus, setBodyStatus] = useState<{ ok: boolean; text: string } | null>(null);
   const [weight, setWeight] = useState('');
   const [bodyFat, setBodyFat] = useState('');
 
@@ -60,7 +61,11 @@ export default function GroupReportPage() {
     const ok = await report({
       checkin: { ...entry, id: generateId(), timestamp: new Date() },
     });
-    setSaved(ok ? 'Check-in saved — you are on the curve.' : 'Failed to save check-in.');
+    setCheckinStatus(
+      ok
+        ? { ok: true, text: '✓ Check-in saved — you are on the curve.' }
+        : { ok: false, text: 'Failed to save check-in. Please try again.' }
+    );
   };
 
   const handleBodyMetric = async (e: React.FormEvent) => {
@@ -78,7 +83,11 @@ export default function GroupReportPage() {
       setWeight('');
       setBodyFat('');
     }
-    setSaved(ok ? 'Body metrics saved.' : 'Failed to save body metrics.');
+    setBodyStatus(
+      ok
+        ? { ok: true, text: '✓ Body metrics saved.' }
+        : { ok: false, text: 'Failed to save body metrics. Please try again.' }
+    );
   };
 
   if (loading) {
@@ -148,12 +157,6 @@ export default function GroupReportPage() {
       </h3>
       <GroupRoster group={group} highlightId={me.id} />
 
-      {saved && (
-        <div className="bg-card border border-sage rounded-xl px-4 py-3 mb-6 text-sm text-sage font-medium">
-          {saved}
-        </div>
-      )}
-
       {group.endTime ? (
         <div className="bg-card border border-line rounded-2xl p-6 text-center font-serif italic text-muted mb-7">
           the fast has ended — no more check-ins, but the story is saved
@@ -165,6 +168,7 @@ export default function GroupReportPage() {
             onSubmit={handleCheckin}
             heading="How are you, right now?"
             subheading={`reporting into ${group.name}`}
+            status={checkinStatus}
           />
         </div>
       )}
@@ -215,6 +219,17 @@ export default function GroupReportPage() {
               Save
             </button>
           </div>
+          {bodyStatus && (
+            <div
+              className={`mt-3 px-4 py-3 rounded-xl border text-sm font-medium ${
+                bodyStatus.ok
+                  ? 'border-sage text-sage bg-sage/10'
+                  : 'border-clay text-clay bg-clay/10'
+              }`}
+            >
+              {bodyStatus.text}
+            </div>
+          )}
         </form>
       )}
 

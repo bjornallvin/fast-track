@@ -9,6 +9,7 @@ interface CheckinFormProps {
   inline?: boolean; // render as an in-page card instead of a modal
   heading?: string;
   subheading?: string;
+  status?: { ok: boolean; text: string } | null; // shown right at the save button
 }
 
 const SCALE_FIELDS: {
@@ -64,6 +65,7 @@ const CheckinForm: React.FC<CheckinFormProps> = ({
   inline = false,
   heading = 'How are you, right now?',
   subheading,
+  status,
 }) => {
   const [formData, setFormData] = useState({
     energy: 5,
@@ -213,6 +215,15 @@ const CheckinForm: React.FC<CheckinFormProps> = ({
           </button>
         )}
       </div>
+      {status && (
+        <div
+          className={`mt-3 px-4 py-3 rounded-xl border text-sm font-medium text-center ${
+            status.ok ? 'border-sage text-sage bg-sage/10' : 'border-clay text-clay bg-clay/10'
+          }`}
+        >
+          {status.text}
+        </div>
+      )}
       <p className="text-center text-xs text-muted font-serif italic mt-4">
         every check-in becomes a point on your curve
       </p>
