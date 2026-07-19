@@ -1,19 +1,10 @@
 import { NextResponse } from 'next/server';
-import * as brevo from '@getbrevo/brevo';
 import { kv } from '@vercel/kv';
 import * as React from 'react';
 import type { FastingSession, GroupSession } from '@/types';
 import { SessionLinksEmail, type GroupLinkData } from '@/components/email/SessionLinksEmail';
 import { render } from '@react-email/render';
-
-// Initialize Brevo
-const apiInstance = new brevo.TransactionalEmailsApi();
-if (process.env.BREVO_API_KEY) {
-  apiInstance.setApiKey(
-    brevo.TransactionalEmailsApiApiKeys.apiKey,
-    process.env.BREVO_API_KEY
-  );
-}
+import { sendEmail, getBaseUrl } from '@/utils/sendEmail';
 
 export async function POST(request: Request) {
   try {
@@ -56,7 +47,7 @@ export async function POST(request: Request) {
     } while (cursor !== 0 && cursor !== '0');
 
     // Also scan group fasts: organizer links + participant report links
-    const baseUrlForGroups = process.env.NEXT_PUBLIC_BASE_URL || 'https://fast-tracking.vercel.app';
+    const baseUrlForGroups = getBaseUrl();
     const groupLinks: GroupLinkData[] = [];
     cursor = 0;
     do {
@@ -105,31 +96,17 @@ export async function POST(request: Request) {
     }));
 
     // Get base URL (production or development)
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://fast-tracking.vercel.app';
+    const baseUrl = getBaseUrl();
 
     // Render email HTML using React Email
     const emailElement = SessionLinksEmail({ sessions: sessionData, groupLinks, baseUrl }) as React.ReactElement;
     const emailHtml = await render(emailElement);
 
-    // Get sender info from environment variables
-    const fromEmail = process.env.BREVO_FROM_EMAIL || 'noreply@example.com';
-    const fromName = process.env.BREVO_FROM_NAME || 'Fast Track';
-
-    // Prepare email payload for Brevo
-    const sendSmtpEmail = new brevo.SendSmtpEmail();
-    sendSmtpEmail.sender = { email: fromEmail, name: fromName };
-    sendSmtpEmail.to = [{ email: email }];
-    sendSmtpEmail.subject = 'Your Fast Track Session Links';
-    sendSmtpEmail.htmlContent = emailHtml;
-
-    // Send email via Brevo
+    // Send email via Gmail
     try {
-      await apiInstance.sendTransacEmail(sendSmtpEmail);
-    } catch (error: any) {
-      console.error('Brevo error:', error);
-      if (error.response) {
-        console.error('Brevo error body:', error.response.body);
-      }
+      await sendEmail(email, 'Your Fast Track Session Links', emailHtml);
+    } catch (error) {
+      console.error('Email send error:', error);
       return NextResponse.json(
         { error: 'Failed to send email' },
         { status: 500 }

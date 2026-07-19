@@ -1,28 +1,41 @@
-import * as brevo from '@getbrevo/brevo';
+import nodemailer from 'nodemailer';
 
-// Shared Brevo transactional-email helper (server-side only)
-const apiInstance = new brevo.TransactionalEmailsApi();
-if (process.env.BREVO_API_KEY) {
-  apiInstance.setApiKey(
-    brevo.TransactionalEmailsApiApiKeys.apiKey,
-    process.env.BREVO_API_KEY
-  );
-}
+// Shared email helper (server-side only).
+// Sends via Gmail SMTP as the account owner. Because the sending domain
+// (allvin.se) is hosted on Google and lists Google in its SPF, mail sent this
+// way passes SPF/DKIM/DMARC and reaches the inbox — unlike third-party relays
+// sending "as" the domain without domain authentication.
+
+const GMAIL_USER = process.env.GMAIL_USER;
+// App passwords are often shown as "abcd efgh ijkl mnop" — strip spaces.
+const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD?.replace(/\s+/g, '');
+
+const transporter =
+  GMAIL_USER && GMAIL_APP_PASSWORD
+    ? nodemailer.createTransport({
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true,
+        auth: { user: GMAIL_USER, pass: GMAIL_APP_PASSWORD },
+      })
+    : null;
 
 export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function sendEmail(to: string, subject: string, html: string): Promise<void> {
-  const sendSmtpEmail = new brevo.SendSmtpEmail();
-  sendSmtpEmail.sender = {
-    email: process.env.BREVO_FROM_EMAIL || 'noreply@example.com',
-    name: process.env.BREVO_FROM_NAME || 'Fast Track',
-  };
-  sendSmtpEmail.to = [{ email: to }];
-  sendSmtpEmail.subject = subject;
-  sendSmtpEmail.htmlContent = html;
-  await apiInstance.sendTransacEmail(sendSmtpEmail);
+  if (!transporter) {
+    throw new Error('Email is not configured (set GMAIL_USER and GMAIL_APP_PASSWORD)');
+  }
+  const fromName = process.env.EMAIL_FROM_NAME || 'Fast Track';
+  await transporter.sendMail({
+    from: `"${fromName}" <${GMAIL_USER}>`,
+    to,
+    subject,
+    html,
+  });
 }
 
 export function getBaseUrl(): string {
-  return process.env.NEXT_PUBLIC_BASE_URL || 'https://fast-tracking.vercel.app';
+  // Strip any trailing slash so callers can safely append "/group/…".
+  return (process.env.NEXT_PUBLIC_BASE_URL || 'https://fast-tracking.vercel.app').replace(/\/+$/, '');
 }
