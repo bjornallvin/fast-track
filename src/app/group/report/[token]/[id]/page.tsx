@@ -128,7 +128,7 @@ export default function GroupReportPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-7 py-9 pb-20">
+    <div className="max-w-4xl mx-auto px-7 py-9 pb-20">
       <header className="flex justify-between items-center mb-6">
         <div className="font-serif font-semibold text-[22px]">
           Fast<b className="text-clay">·</b>Track
@@ -170,6 +170,17 @@ export default function GroupReportPage() {
             heading="How are you, right now?"
             subheading={`reporting into ${group.name}`}
             status={checkinStatus}
+            showSleep={
+              !(me?.entries ?? []).some(e => {
+                const d = new Date(e.timestamp);
+                const now = new Date();
+                return (
+                  d.getFullYear() === now.getFullYear() &&
+                  d.getMonth() === now.getMonth() &&
+                  d.getDate() === now.getDate()
+                );
+              })
+            }
           />
         </div>
       )}

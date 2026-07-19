@@ -150,7 +150,7 @@ export default function ViewSessionPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-7 py-9 pb-20">
+    <div className="max-w-5xl mx-auto px-7 py-9 pb-20">
       <header className="flex justify-between items-center mb-6">
         <a href="/" className="font-serif font-semibold text-[22px] text-ink">
           Fast<b className="text-clay">·</b>Track

@@ -9,6 +9,7 @@ interface CheckinFormProps {
   inline?: boolean; // render as an in-page card instead of a modal
   heading?: string;
   subheading?: string;
+  showSleep?: boolean; // only meaningful on the first check-in of the day
   status?: { ok: boolean; text: string } | null; // shown right at the save button
 }
 
@@ -65,6 +66,7 @@ const CheckinForm: React.FC<CheckinFormProps> = ({
   inline = false,
   heading = 'How are you, right now?',
   subheading,
+  showSleep = true,
   status,
 }) => {
   const [formData, setFormData] = useState({
@@ -76,11 +78,13 @@ const CheckinForm: React.FC<CheckinFormProps> = ({
     sleepQuality: undefined as number | undefined,
     waterIntake: undefined as number | undefined,
     electrolytes: false,
+    note: '',
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
+    const { note, ...rest } = formData;
+    onSubmit({ ...rest, note: note.trim() || undefined });
     onClose?.();
   };
 
@@ -89,11 +93,11 @@ const CheckinForm: React.FC<CheckinFormProps> = ({
       <h2 className="font-serif font-medium text-2xl sm:text-3xl tracking-tight">
         {heading}
       </h2>
-      {subheading && (
-        <div className="font-serif italic text-muted mt-1">{subheading}</div>
-      )}
+      <div className="font-serif italic text-muted mt-1">
+        {subheading ?? 'a snapshot of this moment — not an average since your last check-in'}
+      </div>
 
-      <div className="mt-6 space-y-6">
+      <div className="mt-6 grid gap-x-7 gap-y-6 sm:grid-cols-2">
         {SCALE_FIELDS.map(field => (
           <div key={field.key}>
             <div className="flex justify-between items-baseline mb-2.5">
@@ -134,10 +138,13 @@ const CheckinForm: React.FC<CheckinFormProps> = ({
         ))}
       </div>
 
-      <div className="bg-card border border-line rounded-2xl px-5 py-2 my-7">
+      <div className="mt-7 mb-2 text-xs uppercase tracking-wide text-muted font-semibold">
+        Today so far
+      </div>
+      <div className="bg-card border border-line rounded-2xl px-5 py-2">
         <div className="flex justify-between items-center py-2.5">
           <label className="font-medium text-[15px]" htmlFor="checkin-water">
-            Water so far (glasses)
+            Water today (glasses)
           </label>
           <input
             id="checkin-water"
@@ -176,27 +183,45 @@ const CheckinForm: React.FC<CheckinFormProps> = ({
             />
           </button>
         </div>
-        <div className="flex justify-between items-center py-2.5 border-t border-line">
-          <label className="font-medium text-[15px]" htmlFor="checkin-sleep">
-            Sleep last night (1–10)
-          </label>
-          <input
-            id="checkin-sleep"
-            type="number"
-            min="1"
-            max="10"
-            value={formData.sleepQuality ?? ''}
-            onChange={e =>
-              setFormData({
-                ...formData,
-                sleepQuality: e.target.value ? Number(e.target.value) : undefined,
-              })
-            }
-            className="w-[90px] px-2.5 py-2 border border-line rounded-lg text-right bg-white"
-            placeholder="—"
-          />
-        </div>
+        {showSleep && (
+          <div className="flex justify-between items-center py-2.5 border-t border-line">
+            <label className="font-medium text-[15px]" htmlFor="checkin-sleep">
+              Sleep last night (1–10)
+            </label>
+            <input
+              id="checkin-sleep"
+              type="number"
+              min="1"
+              max="10"
+              value={formData.sleepQuality ?? ''}
+              onChange={e =>
+                setFormData({
+                  ...formData,
+                  sleepQuality: e.target.value ? Number(e.target.value) : undefined,
+                })
+              }
+              className="w-[90px] px-2.5 py-2 border border-line rounded-lg text-right bg-white"
+              placeholder="—"
+            />
+          </div>
+        )}
       </div>
+
+      <div className="mt-5">
+        <label className="font-medium text-[15px] block mb-2" htmlFor="checkin-note">
+          Anything to note? <span className="text-muted font-normal">(optional)</span>
+        </label>
+        <textarea
+          id="checkin-note"
+          value={formData.note}
+          onChange={e => setFormData({ ...formData, note: e.target.value })}
+          rows={2}
+          placeholder="How's it going? Cravings, wins, how you're feeling…"
+          className="w-full px-3.5 py-3 border border-line rounded-xl bg-white resize-y text-[15px]"
+        />
+      </div>
+
+      <div className="mt-6" />
 
       <div className="flex gap-3">
         <button
@@ -241,7 +266,7 @@ const CheckinForm: React.FC<CheckinFormProps> = ({
       onClick={onClose}
     >
       <div
-        className="bg-paper rounded-2xl shadow-xl p-6 sm:p-8 w-full max-w-lg max-h-[92vh] overflow-y-auto"
+        className="bg-paper rounded-2xl shadow-xl p-6 sm:p-8 w-full max-w-2xl max-h-[92vh] overflow-y-auto"
         onClick={e => e.stopPropagation()}
       >
         {form}

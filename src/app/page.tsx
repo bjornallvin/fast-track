@@ -204,7 +204,7 @@ export default function Home() {
   const hasShared = readOnlySessions.length > 0 || followedGroups.length > 0;
 
   return (
-    <div className="max-w-3xl mx-auto px-7 pt-10 pb-20">
+    <div className="max-w-5xl mx-auto px-7 pt-10 pb-20">
       <header className="flex justify-between items-center mb-11">
         <div className="font-serif font-semibold text-2xl tracking-tight">
           Fast<b className="text-clay">·</b>Track
@@ -238,7 +238,7 @@ export default function Home() {
       {hasOwn && (
         <>
           {sectionHeading('Your fasts', 'stored on this device')}
-          <div className="flex flex-col gap-2.5 mb-9">
+          <div className="grid sm:grid-cols-2 gap-2.5 mb-9 items-start">
             {myGroups.map(g => (
               <a
                 key={`group-${g.id}-${g.role}`}
@@ -296,7 +296,7 @@ export default function Home() {
       {hasShared && (
         <>
           {sectionHeading('Shared with you', 'read-only')}
-          <div className="flex flex-col gap-2.5 mb-9">
+          <div className="grid sm:grid-cols-2 gap-2.5 mb-9 items-start">
             {followedGroups.map(g => (
               <a
                 key={`group-${g.id}-viewer`}

@@ -20,9 +20,10 @@ export interface CheckinEntry {
   mentalClarity: number; // 1-10
   mood: number; // 1-10
   physicalComfort: number; // 1-10
-  sleepQuality?: number; // 1-10, optional
+  sleepQuality?: number; // 1-10, optional — only meaningful on the first check-in of a day
   waterIntake?: number;
   electrolytes?: boolean;
+  note?: string; // optional free-text comment for this check-in
 }
 
 export interface BodyMetric {

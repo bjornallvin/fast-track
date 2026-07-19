@@ -78,7 +78,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   }, [session]);
 
   return (
-    <div className="max-w-3xl mx-auto px-7 py-10 pb-20">
+    <div className="max-w-6xl mx-auto px-7 py-10 pb-20">
       <header className="flex justify-between items-center mb-9 gap-4 flex-wrap">
         <a href="/" className="font-serif font-semibold text-2xl tracking-tight text-ink">
           Fast<b className="text-clay">·</b>Track
@@ -118,6 +118,8 @@ const Dashboard: React.FC<DashboardProps> = ({
             endTime={session.isActive ? null : session.endTime}
           />
 
+          <div className="mt-8 lg:grid lg:grid-cols-2 lg:gap-x-10 lg:items-start">
+          <div>
           {latest && (
             <>
               <h3 className="font-serif font-medium text-xl mt-9 mb-3.5 flex items-center gap-3 after:content-[''] after:flex-1 after:h-px after:bg-line">
@@ -228,13 +230,34 @@ const Dashboard: React.FC<DashboardProps> = ({
             )}
           </div>
 
-          <div className="mt-9 space-y-6">
+          </div>{/* end left column */}
+
+          <div className="mt-9 lg:mt-0 space-y-6">
             <ProgressChart entries={session.entries} startTime={session.startTime} />
+            {session.entries.some(e => e.note) && (
+              <div className="bg-card border border-line rounded-2xl px-5 py-5">
+                <h3 className="font-serif font-medium text-lg mb-3">Check-in notes</h3>
+                <div className="space-y-3">
+                  {[...session.entries]
+                    .filter(e => e.note)
+                    .reverse()
+                    .map(e => (
+                      <div key={e.id} className="border-l-2 border-line pl-3">
+                        <div className="text-xs text-muted">
+                          {formatSwedishDateTime(e.timestamp)}
+                        </div>
+                        <div className="text-ink whitespace-pre-wrap text-[15px]">{e.note}</div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
             <BodyMetrics metrics={session.bodyMetrics} onAddMetric={onAddBodyMetric} />
             <Journal entries={session.notes} onAddEntry={onAddJournalEntry} />
           </div>
+          </div>{/* end two-column grid */}
 
-          <div className="bg-card border border-line rounded-2xl px-5 py-5 mt-6">
+          <div className="bg-card border border-line rounded-2xl px-5 py-5 mt-8">
             <h3 className="font-serif font-medium text-lg mb-3">Your data, yours</h3>
             <div className="flex flex-wrap gap-3">
               <button
@@ -263,6 +286,17 @@ const Dashboard: React.FC<DashboardProps> = ({
           onSubmit={onAddCheckin}
           onClose={() => setShowCheckinForm(false)}
           subheading={`${dayLabel} of ${session.name}`}
+          showSleep={
+            !session.entries.some(e => {
+              const d = new Date(e.timestamp);
+              const now = new Date();
+              return (
+                d.getFullYear() === now.getFullYear() &&
+                d.getMonth() === now.getMonth() &&
+                d.getDate() === now.getDate()
+              );
+            })
+          }
         />
       )}
 
