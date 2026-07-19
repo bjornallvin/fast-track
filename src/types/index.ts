@@ -80,3 +80,47 @@ export interface GroupSessionPublic {
   role: 'organizer' | 'participant' | 'viewer';
   participantId?: string; // set when role === 'participant'
 }
+
+// --- Configurable sharing (spec 003) ---
+// A saved, server-enforced share. The opaque `id` is the only credential in
+// the URL; the read API returns ONLY the data this config permits.
+
+export interface ShareVisibility {
+  bodyMetrics: boolean; // weight & body-fat
+  checkins: boolean;    // wellbeing charts
+  journal: boolean;     // journal notes (opt-in; not in the default views)
+}
+
+export interface Share {
+  id: string;
+  createdAt: Date;
+  source: { kind: 'session' | 'group'; id: string };
+  scope: 'all' | 'participant'; // 'participant' = just me / the single person
+  participantId?: string;       // required when kind='group' & scope='participant'
+  show: ShareVisibility;
+}
+
+// A single person's data as rendered in a share — tokens/email stripped, and
+// each array emptied when its toggle is off (fail-closed at the sanitizer).
+export interface SharePerson {
+  id: string;
+  name: string;
+  color?: string;
+  joinedAt: Date;
+  entries: CheckinEntry[];
+  bodyMetrics: BodyMetric[];
+  notes: JournalEntry[];
+}
+
+// The purpose-built payload the share read endpoint returns — never a raw entity.
+export interface SharePayload {
+  shareId: string;
+  kind: 'session' | 'group';
+  scope: 'all' | 'participant';
+  title: string;
+  startTime: Date;
+  targetDuration: number;
+  endTime?: Date | null;
+  show: ShareVisibility;
+  people: SharePerson[]; // 1 for session / "just me"; N for group "all"
+}

@@ -9,6 +9,7 @@ import ProgressChart from './ProgressChart';
 import SessionSelector from './SessionSelector';
 import NewSessionDialog from './NewSessionDialog';
 import ShareButton from './ShareButton';
+import ShareDialog from './ShareDialog';
 import type { FastingSession, CheckinEntry, BodyMetric } from '../types';
 import { formatSwedishDateTime } from '../utils/dateFormat';
 import { exportSessionData, exportSessionDataAsCSV } from '../utils/dataExport';
@@ -220,7 +221,11 @@ const Dashboard: React.FC<DashboardProps> = ({
                 End fast
               </button>
             )}
-            <ShareButton sessionId={session.id} />
+            {session.editToken ? (
+              <ShareDialog source={{ kind: 'session', id: session.id }} auth={session.editToken} />
+            ) : (
+              <ShareButton sessionId={session.id} />
+            )}
           </div>
 
           <div className="mt-9 space-y-6">

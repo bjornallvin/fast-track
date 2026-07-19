@@ -6,6 +6,7 @@ import Link from 'next/link';
 import SharedTimerHero from '@/components/SharedTimerHero';
 import GroupRoster from '@/components/GroupRoster';
 import GroupComparisonChart from '@/components/GroupComparisonChart';
+import ShareDialog from '@/components/ShareDialog';
 import { useGroupData } from '@/hooks/useGroupData';
 import { saveGroupLink } from '@/types/groupLink';
 import { formatSwedishDateTime } from '@/utils/dateFormat';
@@ -214,6 +215,15 @@ export default function GroupOrganizerPage() {
           the join link lets people enter the fast and report their own data · the
           read-only link only watches
         </p>
+        <div className="mt-3">
+          <ShareDialog
+            source={{ kind: 'group', id: groupId }}
+            auth={token}
+            canShareAll
+            label="Custom share — pick what's visible…"
+            className="w-full px-4 py-3 rounded-xl border border-line text-ink font-medium cursor-pointer hover:border-sage hover:text-sage transition-colors"
+          />
+        </div>
         {!group.endTime && (
           <form onSubmit={handleInvite} className="mt-4 pt-4 border-t border-line">
             <label className="block font-semibold text-sm mb-2" htmlFor="invite-emails">
