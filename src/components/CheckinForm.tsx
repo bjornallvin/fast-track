@@ -76,8 +76,6 @@ const CheckinForm: React.FC<CheckinFormProps> = ({
     mood: 5,
     physicalComfort: 5,
     sleepQuality: undefined as number | undefined,
-    waterIntake: undefined as number | undefined,
-    electrolytes: false,
     note: '',
   });
 
@@ -138,53 +136,9 @@ const CheckinForm: React.FC<CheckinFormProps> = ({
         ))}
       </div>
 
-      <div className="mt-7 mb-2 text-xs uppercase tracking-wide text-muted font-semibold">
-        Today so far
-      </div>
-      <div className="bg-card border border-line rounded-2xl px-5 py-2">
-        <div className="flex justify-between items-center py-2.5">
-          <label className="font-medium text-[15px]" htmlFor="checkin-water">
-            Water today (glasses)
-          </label>
-          <input
-            id="checkin-water"
-            type="number"
-            min="0"
-            max="30"
-            step="0.5"
-            value={formData.waterIntake ?? ''}
-            onChange={e =>
-              setFormData({
-                ...formData,
-                waterIntake: e.target.value ? Number(e.target.value) : undefined,
-              })
-            }
-            className="w-[90px] px-2.5 py-2 border border-line rounded-lg text-right bg-white"
-            placeholder="—"
-          />
-        </div>
-        <div className="flex justify-between items-center py-2.5 border-t border-line">
-          <label className="font-medium text-[15px]">Electrolytes taken</label>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={formData.electrolytes}
-            onClick={() =>
-              setFormData({ ...formData, electrolytes: !formData.electrolytes })
-            }
-            className={`w-[46px] h-[26px] rounded-full relative cursor-pointer transition-colors ${
-              formData.electrolytes ? 'bg-sage' : 'bg-line'
-            }`}
-          >
-            <span
-              className={`absolute top-[3px] w-5 h-5 rounded-full bg-white transition-all ${
-                formData.electrolytes ? 'right-[3px]' : 'left-[3px]'
-              }`}
-            />
-          </button>
-        </div>
-        {showSleep && (
-          <div className="flex justify-between items-center py-2.5 border-t border-line">
+      {showSleep && (
+        <div className="mt-7 bg-card border border-line rounded-2xl px-5 py-2">
+          <div className="flex justify-between items-center py-2.5">
             <label className="font-medium text-[15px]" htmlFor="checkin-sleep">
               Sleep last night (1–10)
             </label>
@@ -204,8 +158,8 @@ const CheckinForm: React.FC<CheckinFormProps> = ({
               placeholder="—"
             />
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       <div className="mt-5">
         <label className="font-medium text-[15px] block mb-2" htmlFor="checkin-note">
