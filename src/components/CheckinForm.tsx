@@ -95,7 +95,7 @@ const CheckinForm: React.FC<CheckinFormProps> = ({
         {subheading ?? 'a snapshot of this moment — not an average since your last check-in'}
       </div>
 
-      <div className="mt-6 grid gap-x-7 gap-y-6 sm:grid-cols-2">
+      <div className="mt-6 grid gap-y-6 sm:grid-cols-2 sm:gap-x-14 lg:gap-x-20 [&>*:nth-child(even)]:sm:border-l [&>*:nth-child(even)]:sm:border-line [&>*:nth-child(even)]:sm:pl-14 lg:[&>*:nth-child(even)]:pl-20">
         {SCALE_FIELDS.map(field => (
           <div key={field.key}>
             <div className="flex justify-between items-baseline mb-2.5">
