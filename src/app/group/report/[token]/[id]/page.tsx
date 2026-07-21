@@ -162,6 +162,10 @@ export default function GroupReportPage() {
         <div className="bg-card border border-line rounded-2xl p-6 text-center font-serif italic text-muted mb-7">
           the fast has ended — no more check-ins, but the story is saved
         </div>
+      ) : new Date(group.startTime).getTime() > Date.now() ? (
+        <div className="bg-card border border-line rounded-2xl p-6 text-center font-serif italic text-muted mb-7">
+          the fast hasn&apos;t started yet — check-ins open when the clock starts
+        </div>
       ) : (
         <div className="mb-9">
           <CheckinForm
@@ -185,7 +189,7 @@ export default function GroupReportPage() {
         </div>
       )}
 
-      {!group.endTime && (
+      {!group.endTime && new Date(group.startTime).getTime() <= Date.now() && (
         <form
           onSubmit={handleBodyMetric}
           className="bg-card border border-line rounded-2xl px-5 py-5 mb-9"

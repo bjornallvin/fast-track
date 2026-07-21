@@ -23,6 +23,12 @@ export async function POST(
       return NextResponse.json({ error: 'Invalid report token' }, { status: 403 });
     }
 
+    // No check-ins before the fast starts or after it ends.
+    const started = new Date(group.startTime).getTime() <= Date.now();
+    if (group.endTime || !started) {
+      return NextResponse.json({ error: 'Fast is not active' }, { status: 409 });
+    }
+
     const updated: GroupSession = {
       ...group,
       participants: group.participants.map(p => {

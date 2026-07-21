@@ -217,8 +217,13 @@ const Dashboard: React.FC<DashboardProps> = ({
           <div className="flex gap-3 mt-8 flex-wrap">
             <button
               onClick={() => setShowCheckinForm(true)}
-              disabled={!session.isActive}
-              className="flex-1 min-w-[140px] bg-clay text-white rounded-xl py-3.5 font-semibold cursor-pointer shadow-[0_6px_18px_rgba(181,100,63,.25)] hover:opacity-90 disabled:opacity-40"
+              disabled={!session.isActive || new Date(session.startTime).getTime() > Date.now()}
+              title={
+                new Date(session.startTime).getTime() > Date.now()
+                  ? 'Check-ins open when the fast starts'
+                  : undefined
+              }
+              className="flex-1 min-w-[140px] bg-clay text-white rounded-xl py-3.5 font-semibold cursor-pointer shadow-[0_6px_18px_rgba(181,100,63,.25)] hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Add a check-in
             </button>
