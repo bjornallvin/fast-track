@@ -115,7 +115,7 @@ const CheckinForm: React.FC<CheckinFormProps> = ({
                     key={value}
                     type="button"
                     onClick={() => setFormData({ ...formData, [field.key]: value })}
-                    className={`flex-1 aspect-square max-h-11 rounded-[11px] border-[1.5px] text-[15px] cursor-pointer transition-colors ${
+                    className={`flex-1 h-12 rounded-xl border-[1.5px] text-[17px] font-medium cursor-pointer transition-colors ${
                       on
                         ? field.clay
                           ? 'bg-clay border-clay text-white font-semibold'
