@@ -116,6 +116,70 @@ const EditableEmail: React.FC<{
   );
 };
 
+// Inline text editor (same interaction as EditableEmail, no validation).
+const EditableName: React.FC<{
+  value: string;
+  onSave: (name: string) => Promise<boolean>;
+}> = ({ value, onSave }) => {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  if (!editing) {
+    return (
+      <button
+        onClick={() => {
+          setDraft(value);
+          setEditing(true);
+        }}
+        className="cursor-pointer underline decoration-dotted underline-offset-2 text-ink hover:text-clay"
+        title="Edit name"
+      >
+        {value}
+      </button>
+    );
+  }
+
+  const save = async () => {
+    const next = draft.trim();
+    if (!next) return;
+    setBusy(true);
+    const ok = await onSave(next);
+    setBusy(false);
+    if (ok) setEditing(false);
+  };
+
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <input
+        type="text"
+        value={draft}
+        onChange={e => setDraft(e.target.value)}
+        onKeyDown={e => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            save();
+          }
+          if (e.key === 'Escape') setEditing(false);
+        }}
+        className="px-2 py-1 border border-line rounded-lg bg-white text-[13px] w-40"
+        autoFocus
+      />
+      <button
+        onClick={save}
+        disabled={busy}
+        className="text-sage font-semibold cursor-pointer disabled:opacity-50"
+        title="Save"
+      >
+        {busy ? '…' : '✓'}
+      </button>
+      <button onClick={() => setEditing(false)} className="text-muted cursor-pointer" title="Cancel">
+        ×
+      </button>
+    </span>
+  );
+};
+
 export default function AdminPage() {
   const [token, setToken] = useState('');
   const [input, setInput] = useState('');
@@ -193,6 +257,33 @@ export default function AdminPage() {
           ) ?? null
       );
     }
+    return true;
+  };
+
+  const setParticipantName = async (
+    groupId: string,
+    participantId: string,
+    name: string
+  ): Promise<boolean> => {
+    const response = await fetch('/api/admin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, action: 'set-name', kind: 'participant', id: groupId, participantId, name }),
+    });
+    if (!response.ok) return false;
+    setGroups(
+      prev =>
+        prev?.map(g =>
+          g.id === groupId
+            ? {
+                ...g,
+                participants: g.participants.map(p =>
+                  p.id === participantId ? { ...p, name } : p
+                ),
+              }
+            : g
+        ) ?? null
+    );
     return true;
   };
 
@@ -371,13 +462,13 @@ export default function AdminPage() {
                   </a>
                   <button
                     onClick={() => clearData('group', g.id, g.name)}
-                    className="text-muted cursor-pointer hover:font-semibold"
+                    className="text-muted underline cursor-pointer hover:text-ink"
                   >
                     clear data
                   </button>
                   <button
                     onClick={() => remove('group', g.id, g.name)}
-                    className="text-clay cursor-pointer hover:font-semibold"
+                    className="text-clay underline cursor-pointer hover:text-ink"
                   >
                     delete
                   </button>
@@ -398,7 +489,12 @@ export default function AdminPage() {
                     <tbody>
                       {g.participants.map(p => (
                         <tr key={p.id}>
-                          <td className="pr-4 py-1 font-medium">{p.name}</td>
+                          <td className="pr-4 py-1 font-medium">
+                            <EditableName
+                              value={p.name}
+                              onSave={name => setParticipantName(g.id, p.id, name)}
+                            />
+                          </td>
                           <td className="pr-4 py-1 text-muted">
                             <EditableEmail
                               value={p.email}

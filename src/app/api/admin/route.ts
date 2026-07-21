@@ -169,6 +169,44 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid kind' }, { status: 400 });
     }
 
+    if (body.action === 'set-name') {
+      const { kind, id, participantId } = body;
+      const name = typeof body.name === 'string' ? body.name.trim() : '';
+      if (!id || typeof id !== 'string' || !name) {
+        return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
+      }
+
+      if (kind === 'session') {
+        const session = await kv.get<FastingSession>(`session:${id}`);
+        if (!session) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+        await kv.set(`session:${id}`, { ...session, name }, { ex: SESSION_TTL });
+        return NextResponse.json({ success: true, name });
+      }
+
+      if (kind === 'group' || kind === 'participant') {
+        const group = await kv.get<GroupSession>(`group:${id}`);
+        if (!group) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+        let updated: GroupSession;
+        if (kind === 'group') {
+          updated = { ...group, name };
+        } else {
+          if (!group.participants.some(p => p.id === participantId)) {
+            return NextResponse.json({ error: 'Participant not found' }, { status: 404 });
+          }
+          updated = {
+            ...group,
+            participants: group.participants.map(p =>
+              p.id === participantId ? { ...p, name } : p
+            ),
+          };
+        }
+        await kv.set(`group:${id}`, updated, { ex: SESSION_TTL });
+        return NextResponse.json({ success: true, name });
+      }
+
+      return NextResponse.json({ error: 'Invalid kind' }, { status: 400 });
+    }
+
     return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
   } catch (error) {
     console.error('Admin API error:', error);
