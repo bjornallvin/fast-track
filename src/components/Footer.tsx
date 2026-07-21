@@ -1,7 +1,7 @@
 const Footer = () => {
   return (
     <footer className="mt-auto border-t border-line">
-      <div className="max-w-3xl mx-auto px-7 py-6 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-muted">
+      <div className="max-w-3xl mx-auto px-4 sm:px-7 py-6 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-muted">
         <span className="font-serif italic">
           © {new Date().getFullYear()} Björn Allvin · made with care for the fasting community
         </span>

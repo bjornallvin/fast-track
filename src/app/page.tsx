@@ -220,7 +220,7 @@ export default function Home() {
   const hasShared = readOnlySessions.length > 0 || followedGroups.length > 0;
 
   return (
-    <div className="max-w-5xl mx-auto px-7 pt-10 pb-20">
+    <div className="max-w-5xl mx-auto px-4 sm:px-7 pt-10 pb-20">
       <header className="flex justify-between items-center mb-11">
         <div className="font-serif font-semibold text-2xl tracking-tight">
           Fast<b className="text-clay">·</b>Track

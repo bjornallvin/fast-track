@@ -85,7 +85,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   }, [session]);
 
   return (
-    <div className="max-w-6xl mx-auto px-7 py-10 pb-20">
+    <div className="max-w-6xl mx-auto px-4 sm:px-7 py-10 pb-20">
       <header className="flex justify-between items-center mb-9 gap-4 flex-wrap">
         <a href="/" className="font-serif font-semibold text-2xl tracking-tight text-ink">
           Fast<b className="text-clay">·</b>Track

@@ -138,7 +138,7 @@ export default function GroupReportPage() {
     }`;
 
   return (
-    <div className="max-w-5xl mx-auto px-7 py-9 pb-20">
+    <div className="max-w-5xl mx-auto px-4 sm:px-7 py-9 pb-20">
       <header className="flex justify-between items-center mb-6">
         <div className="font-serif font-semibold text-[22px]">
           Fast<b className="text-clay">·</b>Track

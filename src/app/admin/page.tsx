@@ -335,7 +335,7 @@ export default function AdminPage() {
 
   if (!token) {
     return (
-      <div className="max-w-md mx-auto px-7 py-16">
+      <div className="max-w-md mx-auto px-4 sm:px-7 py-16">
         <div className="font-serif font-semibold text-2xl mb-8 text-center">
           Fast<b className="text-clay">·</b>Track <span className="text-muted font-normal">admin</span>
         </div>
@@ -375,7 +375,7 @@ export default function AdminPage() {
   const totalParticipants = groups?.reduce((sum, g) => sum + g.participants.length, 0) ?? 0;
 
   return (
-    <div className="max-w-4xl mx-auto px-7 py-9 pb-20">
+    <div className="max-w-4xl mx-auto px-4 sm:px-7 py-9 pb-20">
       <header className="flex justify-between items-center mb-7">
         <a href="/" className="font-serif font-semibold text-[22px] text-ink">
           Fast<b className="text-clay">·</b>Track <span className="text-muted font-normal">admin</span>

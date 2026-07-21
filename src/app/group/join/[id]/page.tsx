@@ -73,7 +73,7 @@ export default function GroupJoinPage() {
   }
 
   return (
-    <div className="max-w-xl mx-auto px-7 py-10">
+    <div className="max-w-xl mx-auto px-4 sm:px-7 py-10">
       <header className="mb-8">
         <div className="font-serif font-semibold text-2xl">
           Fast<b className="text-clay">·</b>Track

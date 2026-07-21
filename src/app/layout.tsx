@@ -1,7 +1,8 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Fraunces, Inter } from "next/font/google";
 import Footer from "@/components/Footer";
 import AdminLink from "@/components/AdminLink";
+import RegisterSW from "@/components/RegisterSW";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -19,11 +20,25 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "Fast Track",
-  description: "Modern fasting tracker with real-time monitoring, body metrics, and secure sharing",
+  description: "A quiet fasting tracker — real-time timer, wellbeing check-ins, and group fasts.",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: "Fast Track",
+    statusBarStyle: "default",
+  },
   icons: {
     icon: { url: "/favicon.svg", type: "image/svg+xml" },
-    apple: "/favicon.svg",
+    apple: "/apple-touch-icon.png",
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#f4ede0",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -37,6 +52,7 @@ export default function RootLayout({
         className={`${fraunces.variable} ${inter.variable} antialiased min-h-full flex flex-col`}
         suppressHydrationWarning={true}
       >
+        <RegisterSW />
         <AdminLink />
         <div className="flex-grow">
           {children}
