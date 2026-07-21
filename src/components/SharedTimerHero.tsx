@@ -36,9 +36,11 @@ const SharedTimerHero: React.FC<SharedTimerHeroProps> = ({
   const [elapsed, setElapsed] = useState(() =>
     calculateElapsedTime(startTime, targetDuration)
   );
+  const [msToStart, setMsToStart] = useState(() => startTime.getTime() - Date.now());
 
   useEffect(() => {
     const update = () => {
+      setMsToStart(startTime.getTime() - Date.now());
       if (endTime) {
         const diff = endTime.getTime() - startTime.getTime();
         const totalHours = diff / 3600000;
@@ -59,12 +61,21 @@ const SharedTimerHero: React.FC<SharedTimerHeroProps> = ({
     return () => clearInterval(interval);
   }, [startTime, targetDuration, endTime, isActive]);
 
+  // Fast whose start time is still in the future: show a countdown, not a
+  // running (negative) clock.
+  const notStarted = isActive && msToStart > 0;
+  const toStartHours = Math.floor(Math.max(msToStart, 0) / 3600000);
+  const toStartMinutes = Math.floor((Math.max(msToStart, 0) % 3600000) / 60000);
+
   const targetEnd = useMemo(
     () => new Date(startTime.getTime() + targetDuration * 3600000),
     [startTime, targetDuration]
   );
 
-  const clock = `${elapsed.hours}:${String(elapsed.minutes).padStart(2, '0')}`;
+  const clock = notStarted
+    ? `${toStartHours}:${String(toStartMinutes).padStart(2, '0')}`
+    : `${elapsed.hours}:${String(elapsed.minutes).padStart(2, '0')}`;
+  const progressPct = notStarted ? 0 : elapsed.percentage;
   const multiDay = targetDuration > 24;
 
   // Milestones: 8h/16h/target for short fasts, one per day for longer ones
@@ -84,25 +95,30 @@ const SharedTimerHero: React.FC<SharedTimerHeroProps> = ({
   return (
     <div className="bg-card border border-line rounded-2xl px-8 py-7 text-center">
       <div className="text-xs tracking-wider text-clay uppercase font-semibold">
-        {eyebrow}
+        {notStarted ? 'Starts soon' : eyebrow}
       </div>
       <div
         className="font-serif font-medium text-6xl sm:text-7xl tracking-tight my-1"
         style={{ fontVariantNumeric: 'tabular-nums' }}
       >
+        {notStarted && <span className="text-3xl text-muted align-middle mr-2">in</span>}
         {clock}
       </div>
       <div className="font-serif italic text-muted">
-        {subtitle ??
-          `started at ${formatSwedishTime(startTime)} · ${Math.round(elapsed.percentage)}% of the ${targetDuration}h target`}
+        {notStarted
+          ? `starts ${formatPoint(startTime, multiDay)} · a ${targetDuration}h fast`
+          : subtitle ??
+            `started at ${formatSwedishTime(startTime)} · ${Math.round(elapsed.percentage)}% of the ${targetDuration}h target`}
       </div>
       <div className="track max-w-md mx-auto mt-4">
-        <i style={{ width: `${elapsed.percentage}%` }} />
+        <i style={{ width: `${progressPct}%` }} />
       </div>
       <div className="flex justify-between text-xs text-muted mt-2 max-w-md mx-auto">
         <span>Start {formatPoint(startTime, multiDay)}</span>
         <span>
-          {elapsed.hours}h {elapsed.minutes}m in
+          {notStarted
+            ? `starts in ${toStartHours}h ${toStartMinutes}m`
+            : `${elapsed.hours}h ${elapsed.minutes}m in`}
         </span>
         <span>
           {endTime

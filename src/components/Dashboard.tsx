@@ -74,6 +74,9 @@ const Dashboard: React.FC<DashboardProps> = ({
 
   const dayLabel = useMemo(() => {
     if (!session) return '';
+    if (session.isActive && new Date(session.startTime).getTime() > Date.now()) {
+      return 'starts soon';
+    }
     const elapsed = session.endTime
       ? (session.endTime.getTime() - session.startTime.getTime()) / 3600000
       : calculateElapsedTime(session.startTime, session.targetDuration).totalHours;
