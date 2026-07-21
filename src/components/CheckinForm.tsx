@@ -92,7 +92,7 @@ const CheckinForm: React.FC<CheckinFormProps> = ({
         {subheading ?? 'a snapshot of this moment — not an average since your last check-in'}
       </div>
 
-      <div className="mt-5 space-y-4">
+      <div className="mt-4 space-y-3">
         {SCALE_FIELDS.map(field => (
           <div key={field.key}>
             <div className="flex justify-between items-baseline mb-1.5">
@@ -112,7 +112,7 @@ const CheckinForm: React.FC<CheckinFormProps> = ({
                     key={value}
                     type="button"
                     onClick={() => setFormData({ ...formData, [field.key]: value })}
-                    className={`flex-1 h-10 rounded-lg border-[1.5px] text-base font-medium cursor-pointer transition-colors ${
+                    className={`flex-1 h-9 rounded-lg border-[1.5px] text-[15px] font-medium cursor-pointer transition-colors ${
                       on
                         ? field.clay
                           ? 'bg-clay border-clay text-white font-semibold'
@@ -124,10 +124,6 @@ const CheckinForm: React.FC<CheckinFormProps> = ({
                   </button>
                 );
               })}
-            </div>
-            <div className="flex justify-between text-xs text-muted mt-1 font-serif italic">
-              <span>{field.low}</span>
-              <span>{field.high}</span>
             </div>
           </div>
         ))}
