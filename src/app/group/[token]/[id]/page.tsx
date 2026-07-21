@@ -49,6 +49,19 @@ export default function GroupOrganizerPage() {
     });
   };
 
+  const removeParticipant = async (pid: string, name: string) => {
+    if (!confirm(`Remove ${name} from this fast? Their check-ins will be deleted.`)) return;
+    try {
+      await fetch(
+        `/api/groups/${groupId}/participants/${pid}?token=${encodeURIComponent(token)}`,
+        { method: 'DELETE' }
+      );
+      refresh();
+    } catch (err) {
+      console.error('Failed to remove participant:', err);
+    }
+  };
+
   const update = async (fields: Record<string, unknown>) => {
     setSaving(true);
     try {
@@ -256,7 +269,7 @@ export default function GroupOrganizerPage() {
       <h3 className="font-serif font-medium text-lg mb-3 flex items-center gap-3 after:content-[''] after:flex-1 after:h-px after:bg-line">
         Who&apos;s in
       </h3>
-      <GroupRoster group={group} />
+      <GroupRoster group={group} onRemove={removeParticipant} />
 
       <GroupComparisonChart group={group} />
 

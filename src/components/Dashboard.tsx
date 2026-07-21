@@ -10,6 +10,7 @@ import SessionSelector from './SessionSelector';
 import NewSessionDialog from './NewSessionDialog';
 import ShareButton from './ShareButton';
 import ShareDialog from './ShareDialog';
+import ResetFastDialog from './ResetFastDialog';
 import type { FastingSession, CheckinEntry, BodyMetric } from '../types';
 import { formatSwedishDateTime } from '../utils/dateFormat';
 import { exportSessionData, exportSessionDataAsCSV } from '../utils/dataExport';
@@ -23,6 +24,7 @@ interface DashboardProps {
   onAddBodyMetric: (metric: Omit<BodyMetric, 'id' | 'timestamp'>) => void;
   onAddJournalEntry: (content: string, tags: string[]) => void;
   onEndFast: () => void;
+  onUpdateSession?: (updates: Partial<FastingSession>) => void;
   onImportSession?: (session: FastingSession) => void;
   onCreateNewSession: (name: string, startTime: Date, targetDuration: number) => void;
   setShowNewSessionDialog: (show: boolean) => void;
@@ -50,10 +52,12 @@ const Dashboard: React.FC<DashboardProps> = ({
   onAddBodyMetric,
   onAddJournalEntry,
   onEndFast,
+  onUpdateSession,
   onCreateNewSession,
   setShowNewSessionDialog,
 }) => {
   const [showCheckinForm, setShowCheckinForm] = useState(false);
+  const [showResetDialog, setShowResetDialog] = useState(false);
 
   const latest = useMemo(() => {
     if (!session || session.entries.length === 0) return null;
@@ -228,6 +232,14 @@ const Dashboard: React.FC<DashboardProps> = ({
             ) : (
               <ShareButton sessionId={session.id} />
             )}
+            {onUpdateSession && (
+              <button
+                onClick={() => setShowResetDialog(true)}
+                className="flex-1 min-w-[110px] rounded-xl py-3.5 font-semibold border border-line bg-transparent cursor-pointer hover:border-muted transition-colors"
+              >
+                Reset fast
+              </button>
+            )}
           </div>
 
           </div>{/* end left column */}
@@ -279,6 +291,15 @@ const Dashboard: React.FC<DashboardProps> = ({
             Kept privately · shared only by link
           </div>
         </>
+      )}
+
+      {showResetDialog && session && onUpdateSession && (
+        <ResetFastDialog
+          startTime={session.startTime}
+          targetDuration={session.targetDuration}
+          onClose={() => setShowResetDialog(false)}
+          onSave={onUpdateSession}
+        />
       )}
 
       {showCheckinForm && session && (

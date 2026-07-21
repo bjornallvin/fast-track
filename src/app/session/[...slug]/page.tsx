@@ -177,6 +177,7 @@ export default function SessionPage() {
       onAddBodyMetric={addBodyMetric}
       onAddJournalEntry={addJournalEntry}
       onEndFast={endFast}
+      onUpdateSession={updateSession}
       onCreateNewSession={createSession}
       setShowNewSessionDialog={setShowNewSessionDialog}
       onImportSession={(importedSession) => {

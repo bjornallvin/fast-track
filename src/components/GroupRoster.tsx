@@ -13,10 +13,11 @@ function timeAgo(date: Date): string {
 
 // "Who's in" — every participant is shown, including those with no
 // check-ins yet (present, dimmed), per requirement 7.
-const GroupRoster: React.FC<{ group: GroupSessionPublic; highlightId?: string }> = ({
-  group,
-  highlightId,
-}) => {
+const GroupRoster: React.FC<{
+  group: GroupSessionPublic;
+  highlightId?: string;
+  onRemove?: (participantId: string, name: string) => void;
+}> = ({ group, highlightId, onRemove }) => {
   if (group.participants.length === 0) {
     return (
       <p className="font-serif italic text-muted text-sm mb-7">
@@ -54,6 +55,17 @@ const GroupRoster: React.FC<{ group: GroupSessionPublic; highlightId?: string }>
                   : 'no check-ins yet'}
               </div>
             </div>
+            {onRemove && p.id !== highlightId && (
+              <button
+                type="button"
+                onClick={() => onRemove(p.id, p.name)}
+                title={`Remove ${p.name}`}
+                aria-label={`Remove ${p.name}`}
+                className="ml-1 shrink-0 w-6 h-6 rounded-full text-muted hover:text-clay hover:bg-clay/10 leading-none text-lg cursor-pointer"
+              >
+                ×
+              </button>
+            )}
           </div>
         );
       })}
