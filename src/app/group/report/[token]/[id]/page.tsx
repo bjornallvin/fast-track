@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import SharedTimerHero from '@/components/SharedTimerHero';
 import GroupRoster from '@/components/GroupRoster';
+import GroupComparisonChart from '@/components/GroupComparisonChart';
 import CheckinForm from '@/components/CheckinForm';
 import ShareDialog from '@/components/ShareDialog';
 import { useGroupData } from '@/hooks/useGroupData';
@@ -17,10 +18,12 @@ export default function GroupReportPage() {
   const token = params.token as string;
   const groupId = params.id as string;
   const { group, loading, error, refresh } = useGroupData(groupId, token);
-  const [checkinStatus, setCheckinStatus] = useState<{ ok: boolean; text: string } | null>(null);
   const [bodyStatus, setBodyStatus] = useState<{ ok: boolean; text: string } | null>(null);
   const [weight, setWeight] = useState('');
   const [bodyFat, setBodyFat] = useState('');
+  const [showCheckin, setShowCheckin] = useState(false);
+  const [showBody, setShowBody] = useState(false);
+  const [scope, setScope] = useState<'me' | 'all'>('me');
 
   const me = group?.participants.find(p => p.id === group.participantId);
 
@@ -59,14 +62,9 @@ export default function GroupReportPage() {
   };
 
   const handleCheckin = async (entry: Omit<CheckinEntry, 'id' | 'timestamp'>) => {
-    const ok = await report({
+    await report({
       checkin: { ...entry, id: generateId(), timestamp: new Date() },
     });
-    setCheckinStatus(
-      ok
-        ? { ok: true, text: '✓ Check-in saved — you are on the curve.' }
-        : { ok: false, text: 'Failed to save check-in. Please try again.' }
-    );
   };
 
   const handleBodyMetric = async (e: React.FormEvent) => {
@@ -83,12 +81,11 @@ export default function GroupReportPage() {
     if (ok) {
       setWeight('');
       setBodyFat('');
+      setShowBody(false);
+      setBodyStatus(null);
+    } else {
+      setBodyStatus({ ok: false, text: 'Failed to save. Please try again.' });
     }
-    setBodyStatus(
-      ok
-        ? { ok: true, text: '✓ Body metrics saved.' }
-        : { ok: false, text: 'Failed to save body metrics. Please try again.' }
-    );
   };
 
   if (loading) {
@@ -127,8 +124,30 @@ export default function GroupReportPage() {
     );
   }
 
+  const ended = !!group.endTime;
+  const notStarted = new Date(group.startTime).getTime() > Date.now();
+  const canReport = !ended && !notStarted;
+  const firstCheckinToday = !(me.entries ?? []).some(e => {
+    const d = new Date(e.timestamp);
+    const now = new Date();
+    return (
+      d.getFullYear() === now.getFullYear() &&
+      d.getMonth() === now.getMonth() &&
+      d.getDate() === now.getDate()
+    );
+  });
+  const chartGroup =
+    scope === 'me'
+      ? { ...group, participants: group.participants.filter(p => p.id === me.id) }
+      : group;
+
+  const seg = (on: boolean) =>
+    `px-3.5 py-1.5 text-sm font-medium cursor-pointer ${
+      on ? 'bg-clay text-white' : 'bg-card text-muted hover:text-ink'
+    }`;
+
   return (
-    <div className="max-w-4xl mx-auto px-7 py-9 pb-20">
+    <div className="max-w-5xl mx-auto px-7 py-9 pb-20">
       <header className="flex justify-between items-center mb-6">
         <div className="font-serif font-semibold text-[22px]">
           Fast<b className="text-clay">·</b>Track
@@ -144,7 +163,7 @@ export default function GroupReportPage() {
         {group.participants.length === 1 ? 'person' : 'people'} — everyone on the same clock
       </div>
 
-      <div className="mb-7">
+      <div className="mb-6">
         <SharedTimerHero
           eyebrow={group.endTime ? 'The fast has ended' : 'The group is fasting'}
           startTime={group.startTime}
@@ -153,123 +172,146 @@ export default function GroupReportPage() {
         />
       </div>
 
-      <h3 className="font-serif font-medium text-lg mb-3 flex items-center gap-3 after:content-[''] after:flex-1 after:h-px after:bg-line">
-        Who&apos;s in
-      </h3>
-      <GroupRoster group={group} highlightId={me.id} />
-
-      {group.endTime ? (
-        <div className="bg-card border border-line rounded-2xl p-6 text-center font-serif italic text-muted mb-7">
-          the fast has ended — no more check-ins, but the story is saved
-        </div>
-      ) : new Date(group.startTime).getTime() > Date.now() ? (
-        <div className="bg-card border border-line rounded-2xl p-6 text-center font-serif italic text-muted mb-7">
-          the fast hasn&apos;t started yet — check-ins open when the clock starts
-        </div>
-      ) : (
-        <div className="mb-9">
-          <CheckinForm
-            inline
-            onSubmit={handleCheckin}
-            heading="How are you, right now?"
-            subheading={`reporting into ${group.name}`}
-            status={checkinStatus}
-            showSleep={
-              !(me?.entries ?? []).some(e => {
-                const d = new Date(e.timestamp);
-                const now = new Date();
-                return (
-                  d.getFullYear() === now.getFullYear() &&
-                  d.getMonth() === now.getMonth() &&
-                  d.getDate() === now.getDate()
-                );
-              })
-            }
-          />
-        </div>
-      )}
-
-      {!group.endTime && new Date(group.startTime).getTime() <= Date.now() && (
-        <form
-          onSubmit={handleBodyMetric}
-          className="bg-card border border-line rounded-2xl px-5 py-5 mb-9"
+      {/* Actions */}
+      <div className="flex flex-wrap gap-3 mb-3">
+        <button
+          onClick={() => setShowCheckin(true)}
+          disabled={!canReport}
+          className="flex-1 min-w-[150px] bg-clay text-white rounded-xl py-3 font-semibold cursor-pointer shadow-[0_6px_18px_rgba(181,100,63,.25)] hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          <h3 className="font-serif font-medium text-lg mb-3">Log body</h3>
-          <div className="flex gap-3 items-end flex-wrap">
-            <div className="flex-1 min-w-[120px]">
-              <label className="block text-sm text-muted mb-1" htmlFor="body-weight">
-                Weight (kg)
-              </label>
-              <input
-                id="body-weight"
-                type="number"
-                step="0.1"
-                min="0"
-                value={weight}
-                onChange={e => setWeight(e.target.value)}
-                className="w-full px-3 py-2.5 border border-line rounded-xl bg-white"
-                placeholder="—"
-              />
-            </div>
-            <div className="flex-1 min-w-[120px]">
-              <label className="block text-sm text-muted mb-1" htmlFor="body-fat">
-                Body fat (%)
-              </label>
-              <input
-                id="body-fat"
-                type="number"
-                step="0.1"
-                min="0"
-                max="100"
-                value={bodyFat}
-                onChange={e => setBodyFat(e.target.value)}
-                className="w-full px-3 py-2.5 border border-line rounded-xl bg-white"
-                placeholder="—"
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={!weight && !bodyFat}
-              className="px-5 py-2.5 rounded-xl border border-clay text-clay font-semibold cursor-pointer hover:bg-clay hover:text-white disabled:opacity-40 transition-colors"
-            >
-              Save
-            </button>
-          </div>
-          {bodyStatus && (
-            <div
-              className={`mt-3 px-4 py-3 rounded-xl border text-sm font-medium ${
-                bodyStatus.ok
-                  ? 'border-sage text-sage bg-sage/10'
-                  : 'border-clay text-clay bg-clay/10'
-              }`}
-            >
-              {bodyStatus.text}
-            </div>
-          )}
-        </form>
-      )}
-
-      {group.participantId && (
-        <div className="mb-6">
+          ＋ Check in
+        </button>
+        <button
+          onClick={() => setShowBody(true)}
+          disabled={!canReport}
+          className="flex-1 min-w-[130px] rounded-xl py-3 font-semibold border border-line bg-transparent cursor-pointer hover:border-sage hover:text-sage disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        >
+          Log weight
+        </button>
+        {group.participantId && (
           <ShareDialog
             source={{ kind: 'group', id: groupId }}
             auth={token}
             self={{ participantId: group.participantId }}
-            label="Share just my journey…"
-            className="w-full px-4 py-3 rounded-xl border border-line text-ink font-medium cursor-pointer hover:border-sage hover:text-sage transition-colors"
+            label="Share…"
+            className="flex-1 min-w-[110px] rounded-xl py-3 font-semibold border border-line bg-transparent cursor-pointer hover:border-sage hover:text-sage transition-colors"
           />
-        </div>
+        )}
+      </div>
+      {!canReport && (
+        <p className="text-sm text-muted font-serif italic mb-6">
+          {ended
+            ? 'the fast has ended — the charts below are the final story'
+            : 'the fast hasn’t started yet — check-ins open when the clock starts'}
+        </p>
       )}
 
-      <div className="text-center">
+      {/* Charts front and center, filterable */}
+      <div className="flex items-center justify-between gap-3 mt-8 mb-4">
+        <h3 className="font-serif font-medium text-xl">Progress</h3>
+        <div className="inline-flex rounded-xl border border-line overflow-hidden">
+          <button onClick={() => setScope('me')} className={seg(scope === 'me')}>
+            Just me
+          </button>
+          <button onClick={() => setScope('all')} className={seg(scope === 'all')}>
+            Everyone
+          </button>
+        </div>
+      </div>
+      <GroupComparisonChart group={chartGroup} />
+
+      {/* Roster */}
+      <h3 className="font-serif font-medium text-lg mt-8 mb-3 flex items-center gap-3 after:content-[''] after:flex-1 after:h-px after:bg-line">
+        Who&apos;s in
+      </h3>
+      <GroupRoster group={group} highlightId={me.id} />
+
+      <div className="text-center mt-8">
         <Link href={`/group/view/${groupId}`} className="text-clay underline text-sm">
-          See how everyone compares →
+          Open the full read-only view →
         </Link>
       </div>
 
-      <div className="text-center mt-10 text-xs text-muted font-serif italic">
-        your check-ins land under your own name · the clock is shared
-      </div>
+      {/* Check-in popup */}
+      {showCheckin && canReport && (
+        <CheckinForm
+          onSubmit={handleCheckin}
+          onClose={() => setShowCheckin(false)}
+          heading="How are you, right now?"
+          subheading={`reporting into ${group.name}`}
+          showSleep={firstCheckinToday}
+        />
+      )}
+
+      {/* Log weight popup */}
+      {showBody && canReport && (
+        <div
+          className="fixed inset-0 flex items-center justify-center p-4 z-50"
+          style={{ backgroundColor: 'rgba(44, 38, 32, 0.55)' }}
+          onClick={() => setShowBody(false)}
+        >
+          <form
+            onSubmit={handleBodyMetric}
+            onClick={e => e.stopPropagation()}
+            className="bg-paper rounded-2xl shadow-xl p-6 sm:p-8 w-full max-w-md"
+          >
+            <h2 className="font-serif font-medium text-2xl tracking-tight mb-5">Log weight</h2>
+            <div className="flex gap-3 items-end flex-wrap mb-2">
+              <div className="flex-1 min-w-[120px]">
+                <label className="block text-sm text-muted mb-1" htmlFor="body-weight">
+                  Weight (kg)
+                </label>
+                <input
+                  id="body-weight"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  value={weight}
+                  onChange={e => setWeight(e.target.value)}
+                  className="w-full px-3 py-2.5 border border-line rounded-xl bg-white"
+                  placeholder="—"
+                  autoFocus
+                />
+              </div>
+              <div className="flex-1 min-w-[120px]">
+                <label className="block text-sm text-muted mb-1" htmlFor="body-fat">
+                  Body fat (%)
+                </label>
+                <input
+                  id="body-fat"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="100"
+                  value={bodyFat}
+                  onChange={e => setBodyFat(e.target.value)}
+                  className="w-full px-3 py-2.5 border border-line rounded-xl bg-white"
+                  placeholder="—"
+                />
+              </div>
+            </div>
+            {bodyStatus && !bodyStatus.ok && (
+              <div className="mb-3 text-sm text-clay">{bodyStatus.text}</div>
+            )}
+            <div className="flex gap-3 mt-4">
+              <button
+                type="submit"
+                disabled={!weight && !bodyFat}
+                className="flex-1 bg-clay text-white rounded-xl py-3 font-semibold cursor-pointer hover:opacity-90 disabled:opacity-40"
+              >
+                Save
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowBody(false)}
+                className="px-6 rounded-xl border border-line bg-card text-ink font-semibold cursor-pointer hover:border-muted"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 }
