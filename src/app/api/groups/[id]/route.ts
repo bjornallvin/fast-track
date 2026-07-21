@@ -90,6 +90,17 @@ export async function POST(
       ...(body.startTime !== undefined ? { startTime: body.startTime } : {}),
       ...(body.targetDuration !== undefined ? { targetDuration: body.targetDuration } : {}),
       ...(body.endTime !== undefined ? { endTime: body.endTime } : {}),
+      // clearData wipes every participant's logged data but keeps the roster
+      ...(body.clearData
+        ? {
+            participants: existing.participants.map(p => ({
+              ...p,
+              entries: [],
+              bodyMetrics: [],
+              notes: [],
+            })),
+          }
+        : {}),
     };
     await kv.set(`group:${id}`, updated, { ex: GROUP_TTL });
     return NextResponse.json({ success: true, id });

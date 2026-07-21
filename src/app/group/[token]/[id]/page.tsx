@@ -26,6 +26,7 @@ export default function GroupOrganizerPage() {
   const [editName, setEditName] = useState('');
   const [editStart, setEditStart] = useState('');
   const [editTarget, setEditTarget] = useState('');
+  const [editClearData, setEditClearData] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -129,15 +130,23 @@ export default function GroupOrganizerPage() {
       `${s.getFullYear()}-${pad(s.getMonth() + 1)}-${pad(s.getDate())}T${pad(s.getHours())}:${pad(s.getMinutes())}`
     );
     setEditTarget(String(group.targetDuration));
+    setEditClearData(false);
     setShowEdit(true);
   };
 
   const handleEditSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (
+      editClearData &&
+      !confirm('Clear ALL check-ins and body data for every participant? This cannot be undone.')
+    ) {
+      return;
+    }
     const ok = await update({
       name: editName.trim() || group?.name,
       startTime: new Date(editStart),
       targetDuration: Number(editTarget),
+      clearData: editClearData,
     });
     if (ok) setShowEdit(false);
   };
@@ -341,8 +350,19 @@ export default function GroupOrganizerPage() {
               max="240"
               value={editTarget}
               onChange={e => setEditTarget(e.target.value)}
-              className="w-full px-3.5 py-2.5 border border-line rounded-xl bg-white mb-6"
+              className="w-full px-3.5 py-2.5 border border-line rounded-xl bg-white mb-4"
             />
+            <label className="flex items-center gap-3 mb-6 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={editClearData}
+                onChange={e => setEditClearData(e.target.checked)}
+                className="w-4 h-4 accent-clay"
+              />
+              <span className="text-[15px]">
+                Clear all participants&apos; check-ins &amp; body data
+              </span>
+            </label>
             <div className="flex gap-3">
               <button
                 type="submit"
