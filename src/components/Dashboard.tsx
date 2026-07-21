@@ -315,17 +315,6 @@ const Dashboard: React.FC<DashboardProps> = ({
           onSubmit={onAddCheckin}
           onClose={() => setShowCheckinForm(false)}
           subheading={`${dayLabel} of ${session.name}`}
-          showSleep={
-            !session.entries.some(e => {
-              const d = new Date(e.timestamp);
-              const now = new Date();
-              return (
-                d.getFullYear() === now.getFullYear() &&
-                d.getMonth() === now.getMonth() &&
-                d.getDate() === now.getDate()
-              );
-            })
-          }
         />
       )}
 

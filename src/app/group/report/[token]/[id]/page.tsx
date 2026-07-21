@@ -127,15 +127,6 @@ export default function GroupReportPage() {
   const ended = !!group.endTime;
   const notStarted = new Date(group.startTime).getTime() > Date.now();
   const canReport = !ended && !notStarted;
-  const firstCheckinToday = !(me.entries ?? []).some(e => {
-    const d = new Date(e.timestamp);
-    const now = new Date();
-    return (
-      d.getFullYear() === now.getFullYear() &&
-      d.getMonth() === now.getMonth() &&
-      d.getDate() === now.getDate()
-    );
-  });
   const chartGroup =
     scope === 'me'
       ? { ...group, participants: group.participants.filter(p => p.id === me.id) }
@@ -239,7 +230,6 @@ export default function GroupReportPage() {
           onClose={() => setShowCheckin(false)}
           heading="How are you, right now?"
           subheading={`reporting into ${group.name}`}
-          showSleep={firstCheckinToday}
         />
       )}
 
