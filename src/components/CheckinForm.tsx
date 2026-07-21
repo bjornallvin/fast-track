@@ -85,7 +85,7 @@ const CheckinForm: React.FC<CheckinFormProps> = ({
 
   const form = (
     <form onSubmit={handleSubmit}>
-      <h2 className="font-serif font-medium text-2xl sm:text-3xl tracking-tight">
+      <h2 className="font-serif font-medium text-2xl tracking-tight">
         {heading}
       </h2>
       <div className="font-serif italic text-muted mt-1">
@@ -124,6 +124,10 @@ const CheckinForm: React.FC<CheckinFormProps> = ({
                   </button>
                 );
               })}
+            </div>
+            <div className="flex justify-between text-[11px] text-muted mt-0.5 font-serif italic leading-none">
+              <span>{field.low}</span>
+              <span>{field.high}</span>
             </div>
           </div>
         ))}
@@ -171,9 +175,6 @@ const CheckinForm: React.FC<CheckinFormProps> = ({
           {status.text}
         </div>
       )}
-      <p className="text-center text-xs text-muted font-serif italic mt-4">
-        every check-in becomes a point on your curve
-      </p>
     </form>
   );
 
