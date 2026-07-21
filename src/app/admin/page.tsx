@@ -287,6 +287,25 @@ export default function AdminPage() {
     return true;
   };
 
+  const setEntityName = async (
+    kind: 'session' | 'group',
+    id: string,
+    name: string
+  ): Promise<boolean> => {
+    const response = await fetch('/api/admin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, action: 'set-name', kind, id, name }),
+    });
+    if (!response.ok) return false;
+    if (kind === 'session') {
+      setSessions(prev => prev?.map(s => (s.id === id ? { ...s, name } : s)) ?? null);
+    } else {
+      setGroups(prev => prev?.map(g => (g.id === id ? { ...g, name } : g)) ?? null);
+    }
+    return true;
+  };
+
   const clearData = async (kind: 'session' | 'group', id: string, label: string) => {
     if (!confirm(`Clear ALL check-ins and body data for ${kind} "${label}"? This cannot be undone.`))
       return;
@@ -426,7 +445,7 @@ export default function AdminPage() {
               <div className="flex justify-between items-start gap-3 flex-wrap">
                 <div>
                   <div className="font-semibold text-[15px]">
-                    {g.name}{' '}
+                    <EditableName value={g.name} onSave={name => setEntityName('group', g.id, name)} />{' '}
                     {(() => {
                       const started = new Date(g.startTime).getTime() <= Date.now();
                       const state = g.endTime ? 'ended' : started ? 'live' : 'upcoming';
@@ -544,7 +563,9 @@ export default function AdminPage() {
             <tbody>
               {sessions.map(s => (
                 <tr key={s.id} className="border-t border-line/60">
-                  <td className="pr-4 py-2 font-medium">{s.name}</td>
+                  <td className="pr-4 py-2 font-medium">
+                    <EditableName value={s.name} onSave={name => setEntityName('session', s.id, name)} />
+                  </td>
                   <td className="pr-4 py-2 text-muted">
                     {formatSwedishDateTime(new Date(s.startTime))}
                   </td>

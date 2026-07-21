@@ -193,6 +193,22 @@ export default function Home() {
     </div>
   );
 
+  const statusBadge = (isActive: boolean, startTime: Date) => {
+    if (!isActive) return <span className="text-muted text-xl">›</span>;
+    if (new Date(startTime).getTime() > Date.now()) {
+      return (
+        <span className="text-[11px] text-clay font-semibold uppercase tracking-wider">
+          Upcoming
+        </span>
+      );
+    }
+    return (
+      <span className="text-[11px] text-sage font-semibold uppercase tracking-wider flex items-center gap-1.5 before:content-[''] before:w-[7px] before:h-[7px] before:rounded-full before:bg-sage before:shadow-[0_0_0_3px_rgba(124,138,107,.2)]">
+        Fasting
+      </span>
+    );
+  };
+
   const sectionHeading = (title: string, comment: string) => (
     <h3 className="font-serif font-medium text-[19px] mb-3.5 flex items-center gap-3 after:content-[''] after:flex-1 after:h-px after:bg-line">
       {title}{' '}
@@ -258,13 +274,7 @@ export default function Home() {
                     {g.targetDuration}h shared fast
                   </div>
                 </div>
-                {g.isActive ? (
-                  <span className="text-[11px] text-sage font-semibold uppercase tracking-wider flex items-center gap-1.5 before:content-[''] before:w-[7px] before:h-[7px] before:rounded-full before:bg-sage before:shadow-[0_0_0_3px_rgba(124,138,107,.2)]">
-                    Fasting
-                  </span>
-                ) : (
-                  <span className="text-muted text-xl">›</span>
-                )}
+                {statusBadge(g.isActive, g.startTime)}
               </a>
             ))}
             {editableSessions.map(session => (
@@ -280,13 +290,7 @@ export default function Home() {
                     {session.targetDuration}h fast
                   </div>
                 </div>
-                {session.isActive ? (
-                  <span className="text-[11px] text-sage font-semibold uppercase tracking-wider flex items-center gap-1.5 before:content-[''] before:w-[7px] before:h-[7px] before:rounded-full before:bg-sage before:shadow-[0_0_0_3px_rgba(124,138,107,.2)]">
-                    Fasting
-                  </span>
-                ) : (
-                  <span className="text-muted text-xl">›</span>
-                )}
+                {statusBadge(session.isActive, session.startTime)}
               </button>
             ))}
           </div>
