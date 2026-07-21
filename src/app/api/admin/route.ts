@@ -85,6 +85,39 @@ export async function POST(request: Request) {
       return NextResponse.json({ sessions, groups });
     }
 
+    if (body.action === 'clear-data') {
+      const { kind, id } = body;
+      if ((kind !== 'session' && kind !== 'group') || !id || typeof id !== 'string') {
+        return NextResponse.json({ error: 'Invalid clear-data request' }, { status: 400 });
+      }
+      if (kind === 'session') {
+        const session = await kv.get<FastingSession>(`session:${id}`);
+        if (!session) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+        await kv.set(
+          `session:${id}`,
+          { ...session, entries: [], bodyMetrics: [], notes: [] },
+          { ex: SESSION_TTL }
+        );
+        return NextResponse.json({ success: true });
+      }
+      const group = await kv.get<GroupSession>(`group:${id}`);
+      if (!group) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+      await kv.set(
+        `group:${id}`,
+        {
+          ...group,
+          participants: group.participants.map(p => ({
+            ...p,
+            entries: [],
+            bodyMetrics: [],
+            notes: [],
+          })),
+        },
+        { ex: SESSION_TTL }
+      );
+      return NextResponse.json({ success: true });
+    }
+
     if (body.action === 'delete') {
       const { kind, id } = body;
       if ((kind !== 'session' && kind !== 'group') || !id || typeof id !== 'string') {

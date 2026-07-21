@@ -196,6 +196,18 @@ export default function AdminPage() {
     return true;
   };
 
+  const clearData = async (kind: 'session' | 'group', id: string, label: string) => {
+    if (!confirm(`Clear ALL check-ins and body data for ${kind} "${label}"? This cannot be undone.`))
+      return;
+    const response = await fetch('/api/admin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, action: 'clear-data', kind, id }),
+    });
+    if (response.ok) load(token);
+    else alert('Clear failed.');
+  };
+
   const remove = async (kind: 'session' | 'group', id: string, label: string) => {
     if (!confirm(`Delete ${kind} "${label}" (${id})? This cannot be undone.`)) return;
     const response = await fetch('/api/admin', {
@@ -324,9 +336,22 @@ export default function AdminPage() {
                 <div>
                   <div className="font-semibold text-[15px]">
                     {g.name}{' '}
-                    <span className={`text-[11px] uppercase tracking-wider font-semibold ${g.endTime ? 'text-muted' : 'text-sage'}`}>
-                      {g.endTime ? 'ended' : 'live'}
-                    </span>
+                    {(() => {
+                      const started = new Date(g.startTime).getTime() <= Date.now();
+                      const state = g.endTime ? 'ended' : started ? 'live' : 'upcoming';
+                      const color = g.endTime
+                        ? 'text-muted'
+                        : started
+                          ? 'text-sage'
+                          : 'text-clay';
+                      return (
+                        <span
+                          className={`text-[11px] uppercase tracking-wider font-semibold ${color}`}
+                        >
+                          {state}
+                        </span>
+                      );
+                    })()}
                   </div>
                   <div className="text-[13px] text-muted mt-0.5">
                     {g.id} · start {formatSwedishDateTime(new Date(g.startTime))} · {g.targetDuration}h
@@ -344,6 +369,12 @@ export default function AdminPage() {
                   <a href={`/group/view/${g.id}`} className="text-muted underline">
                     view
                   </a>
+                  <button
+                    onClick={() => clearData('group', g.id, g.name)}
+                    className="text-muted cursor-pointer hover:font-semibold"
+                  >
+                    clear data
+                  </button>
                   <button
                     onClick={() => remove('group', g.id, g.name)}
                     className="text-clay cursor-pointer hover:font-semibold"
@@ -432,9 +463,16 @@ export default function AdminPage() {
                     />
                   </td>
                   <td className="pr-4 py-2">
-                    <span className={s.isActive ? 'text-sage font-semibold' : 'text-muted'}>
-                      {s.isActive ? 'live' : 'ended'}
-                    </span>
+                    {(() => {
+                      const started = new Date(s.startTime).getTime() <= Date.now();
+                      const state = !s.isActive ? 'ended' : started ? 'live' : 'upcoming';
+                      const color = !s.isActive
+                        ? 'text-muted'
+                        : started
+                          ? 'text-sage font-semibold'
+                          : 'text-clay font-semibold';
+                      return <span className={color}>{state}</span>;
+                    })()}
                   </td>
                   <td className="py-2">
                     <span className="flex gap-2.5">
@@ -446,6 +484,12 @@ export default function AdminPage() {
                       <a href={`/view/${s.id}`} className="text-muted underline">
                         view
                       </a>
+                      <button
+                        onClick={() => clearData('session', s.id, s.name)}
+                        className="text-muted cursor-pointer hover:font-semibold"
+                      >
+                        clear data
+                      </button>
                       <button
                         onClick={() => remove('session', s.id, s.name)}
                         className="text-clay cursor-pointer hover:font-semibold"
