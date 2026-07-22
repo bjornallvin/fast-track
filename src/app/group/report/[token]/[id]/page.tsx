@@ -7,6 +7,7 @@ import SharedTimerHero from '@/components/SharedTimerHero';
 import GroupRoster from '@/components/GroupRoster';
 import GroupComparisonChart from '@/components/GroupComparisonChart';
 import CheckinForm from '@/components/CheckinForm';
+import FastingStageCard from '@/components/FastingStageCard';
 import ShareDialog from '@/components/ShareDialog';
 import { useGroupData } from '@/hooks/useGroupData';
 import { saveGroupLink } from '@/types/groupLink';
@@ -200,6 +201,8 @@ export default function GroupReportPage() {
             : 'the fast hasn’t started yet — check-ins open when the clock starts'}
         </p>
       )}
+
+      <FastingStageCard startTime={group.startTime} endTime={group.endTime} className="mt-3" />
 
       {/* Charts front and center, filterable */}
       <div className="flex items-center justify-between gap-3 mt-8 mb-4">

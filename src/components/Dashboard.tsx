@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import SharedTimerHero from './SharedTimerHero';
+import FastingStageCard from './FastingStageCard';
 import CheckinForm from './CheckinForm';
 import Journal from './Journal';
 import BodyMetrics from './BodyMetrics';
@@ -249,6 +250,12 @@ const Dashboard: React.FC<DashboardProps> = ({
               </button>
             )}
           </div>
+
+          <FastingStageCard
+            startTime={session.startTime}
+            endTime={session.isActive ? null : session.endTime}
+            className="mt-6"
+          />
 
           </div>{/* end left column */}
 

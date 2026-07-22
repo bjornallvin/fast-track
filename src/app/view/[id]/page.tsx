@@ -6,6 +6,7 @@ import { isValidSessionId } from '@/utils/sessionId';
 import type { FastingSession, CheckinEntry, BodyMetric, JournalEntry } from '@/types';
 import type { SessionLink } from '@/types/sessionLink';
 import SharedTimerHero from '@/components/SharedTimerHero';
+import FastingStageCard from '@/components/FastingStageCard';
 import ProgressChart from '@/components/ProgressChart';
 import { formatSwedishDateTime } from '@/utils/dateFormat';
 
@@ -173,6 +174,12 @@ export default function ViewSessionPage() {
           endTime={session.isActive ? null : session.endTime}
         />
       </div>
+
+      <FastingStageCard
+        startTime={session.startTime}
+        endTime={session.isActive ? null : session.endTime}
+        className="mb-6"
+      />
 
       {stats && (
         <div className="grid grid-cols-3 gap-3.5 mb-7">

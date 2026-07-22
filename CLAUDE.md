@@ -14,6 +14,7 @@ Steps to ship to production:
 
 Notes:
 - Do NOT run builds or start the dev server unprompted — assume one is already running.
+- **`npm run build` breaks a running dev server** — they share `.next`. If you build while `next dev` is running, the dev server starts returning 500s. Either skip the local build (Vercel builds remotely anyway; `tsc --noEmit` catches type errors), or restart the dev server after building.
 - Production requires Vercel KV credentials configured in the Vercel project (and `.env.local` for local runs).
 
 ### Project Structure

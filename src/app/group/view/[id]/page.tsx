@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import SharedTimerHero from '@/components/SharedTimerHero';
+import FastingStageCard from '@/components/FastingStageCard';
 import GroupRoster from '@/components/GroupRoster';
 import GroupComparisonChart from '@/components/GroupComparisonChart';
 import { useGroupData } from '@/hooks/useGroupData';
@@ -79,6 +80,8 @@ export default function GroupViewPage() {
           endTime={group.endTime}
         />
       </div>
+
+      <FastingStageCard startTime={group.startTime} endTime={group.endTime} className="mb-6" />
 
       <h3 className="font-serif font-medium text-lg mb-3 flex items-center gap-3 after:content-[''] after:flex-1 after:h-px after:bg-line">
         Who&apos;s in

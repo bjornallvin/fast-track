@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import SharedTimerHero from '@/components/SharedTimerHero';
+import FastingStageCard from '@/components/FastingStageCard';
 import GroupComparisonChart from '@/components/GroupComparisonChart';
 import ProgressChart from '@/components/ProgressChart';
 import { formatSwedishDateTime } from '@/utils/dateFormat';
@@ -118,6 +119,8 @@ export default function SharePage() {
           endTime={payload.endTime}
         />
       </div>
+
+      <FastingStageCard startTime={payload.startTime} endTime={payload.endTime} className="mb-6" />
 
       {nothingShown && (
         <p className="text-center text-muted font-serif italic">

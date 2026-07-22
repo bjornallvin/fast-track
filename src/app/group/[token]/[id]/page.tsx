@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import SharedTimerHero from '@/components/SharedTimerHero';
+import FastingStageCard from '@/components/FastingStageCard';
 import GroupRoster from '@/components/GroupRoster';
 import GroupComparisonChart from '@/components/GroupComparisonChart';
 import ShareDialog from '@/components/ShareDialog';
@@ -215,6 +216,8 @@ export default function GroupOrganizerPage() {
           endTime={group.endTime}
         />
       </div>
+
+      <FastingStageCard startTime={group.startTime} endTime={group.endTime} className="mb-6" />
 
       {/* Share links */}
       <div className="bg-card border border-line rounded-2xl px-5 py-5 mb-7">
