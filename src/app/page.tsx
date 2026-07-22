@@ -21,6 +21,8 @@ export default function Home() {
   const [recoverEmail, setRecoverEmail] = useState('');
   const [recoverStatus, setRecoverStatus] = useState<string | null>(null);
   const [recoverBusy, setRecoverBusy] = useState(false);
+  const [pasteLink, setPasteLink] = useState('');
+  const [pasteError, setPasteError] = useState<string | null>(null);
 
   useEffect(() => {
     const storedLinks = localStorage.getItem('sessionLinks');
@@ -180,6 +182,24 @@ export default function Home() {
       setRecoverStatus('Could not send just now. Try again.');
     } finally {
       setRecoverBusy(false);
+    }
+  };
+
+  // Bridge for installed-PWA users: email links open in the browser (always on
+  // iOS), so let them paste the link here to open the fast inside this app —
+  // after which it's saved in the app's own storage and listed above.
+  const handleOpenLink = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasteError(null);
+    try {
+      const url = new URL(pasteLink.trim());
+      const isFastPath = ['/session/', '/view/', '/group/', '/s/'].some(p =>
+        url.pathname.startsWith(p)
+      );
+      if (!isFastPath) throw new Error('not a fast link');
+      router.push(url.pathname + url.search);
+    } catch {
+      setPasteError('That doesn’t look like a Fast·Track fast link.');
     }
   };
 
@@ -359,6 +379,30 @@ export default function Home() {
         {recoverStatus && (
           <p className="text-sm text-muted font-serif italic mt-3">{recoverStatus}</p>
         )}
+        <div className="border-t border-line mt-4 pt-4">
+          <p className="text-sm text-muted mb-3">
+            Got a fast link? Paste it here to open it in this app.
+          </p>
+          <form onSubmit={handleOpenLink} className="flex gap-2.5 max-w-md mx-auto">
+            <input
+              type="url"
+              value={pasteLink}
+              onChange={e => setPasteLink(e.target.value)}
+              placeholder="https://fast-tracking.vercel.app/…"
+              className="flex-1 px-3.5 py-3 border border-line rounded-xl bg-white text-sm min-w-0"
+            />
+            <button
+              type="submit"
+              disabled={!pasteLink.trim()}
+              className="px-4.5 py-3 rounded-xl border border-clay text-clay font-semibold text-sm cursor-pointer hover:bg-clay hover:text-white transition-colors disabled:opacity-50"
+            >
+              Open
+            </button>
+          </form>
+          {pasteError && (
+            <p className="text-sm text-muted font-serif italic mt-3">{pasteError}</p>
+          )}
+        </div>
       </div>
 
       <div className="mt-12">

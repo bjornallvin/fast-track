@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import SharedTimerHero from './SharedTimerHero';
 import FastingStageCard from './FastingStageCard';
+import Wordmark from './Wordmark';
 import CheckinForm from './CheckinForm';
 import Journal from './Journal';
 import BodyMetrics from './BodyMetrics';
@@ -88,9 +89,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-7 py-10 pb-20">
       <header className="flex justify-between items-center mb-9 gap-4 flex-wrap">
-        <a href="/" className="font-serif font-semibold text-2xl tracking-tight text-ink">
-          Fast<b className="text-clay">·</b>Track
-        </a>
+        <Wordmark className="text-2xl" />
         <div className="flex items-center gap-3">
           {session && (
             <span className="text-[13px] text-muted hidden sm:inline">

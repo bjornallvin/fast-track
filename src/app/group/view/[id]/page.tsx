@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import SharedTimerHero from '@/components/SharedTimerHero';
 import FastingStageCard from '@/components/FastingStageCard';
+import Wordmark from '@/components/Wordmark';
 import GroupRoster from '@/components/GroupRoster';
 import GroupComparisonChart from '@/components/GroupComparisonChart';
 import { useGroupData } from '@/hooks/useGroupData';
@@ -58,9 +59,7 @@ export default function GroupViewPage() {
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-7 py-9 pb-20">
       <header className="flex justify-between items-center mb-6">
-        <a href="/" className="font-serif font-semibold text-[22px] text-ink">
-          Fast<b className="text-clay">·</b>Track
-        </a>
+        <Wordmark />
         <span className="text-[11px] text-sage border border-sage rounded-full px-2.5 py-[3px] tracking-wide">
           shared · read-only
         </span>

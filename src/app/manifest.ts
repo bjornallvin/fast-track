@@ -9,6 +9,11 @@ export default function manifest(): MetadataRoute.Manifest {
     scope: '/',
     display: 'standalone',
     orientation: 'portrait',
+    // Android link capturing: open in-scope links in the already-running app
+    // window instead of spawning browser tabs. (iOS ignores this — Mail links
+    // always open in the browser there; the home page has a paste-a-link
+    // opener as the bridge.)
+    launch_handler: { client_mode: 'navigate-existing' },
     background_color: '#f4ede0',
     theme_color: '#f4ede0',
     icons: [

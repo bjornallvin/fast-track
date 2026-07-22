@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useGroupData } from '@/hooks/useGroupData';
 import { saveGroupLink } from '@/types/groupLink';
 import { formatSwedishDateTime } from '@/utils/dateFormat';
+import Wordmark from '@/components/Wordmark';
 
 export default function GroupJoinPage() {
   const params = useParams();
@@ -75,9 +76,7 @@ export default function GroupJoinPage() {
   return (
     <div className="max-w-xl mx-auto px-4 sm:px-7 py-10">
       <header className="mb-8">
-        <div className="font-serif font-semibold text-2xl">
-          Fast<b className="text-clay">·</b>Track
-        </div>
+        <Wordmark className="text-2xl" />
       </header>
 
       <h1 className="font-serif font-medium text-4xl tracking-tight">

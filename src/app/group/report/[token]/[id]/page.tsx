@@ -8,6 +8,7 @@ import GroupRoster from '@/components/GroupRoster';
 import GroupComparisonChart from '@/components/GroupComparisonChart';
 import CheckinForm from '@/components/CheckinForm';
 import FastingStageCard from '@/components/FastingStageCard';
+import Wordmark from '@/components/Wordmark';
 import ShareDialog from '@/components/ShareDialog';
 import { useGroupData } from '@/hooks/useGroupData';
 import { saveGroupLink } from '@/types/groupLink';
@@ -145,9 +146,7 @@ export default function GroupReportPage() {
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-7 py-9 pb-20">
       <header className="flex justify-between items-center mb-6">
-        <div className="font-serif font-semibold text-[22px]">
-          Fast<b className="text-clay">·</b>Track
-        </div>
+        <Wordmark />
         <span className="text-[13px] text-muted">
           reporting as <b className="text-ink font-semibold">{me.name}</b>
         </span>

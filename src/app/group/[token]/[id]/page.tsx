@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import SharedTimerHero from '@/components/SharedTimerHero';
 import FastingStageCard from '@/components/FastingStageCard';
+import Wordmark from '@/components/Wordmark';
 import GroupRoster from '@/components/GroupRoster';
 import GroupComparisonChart from '@/components/GroupComparisonChart';
 import ShareDialog from '@/components/ShareDialog';
@@ -194,9 +195,7 @@ export default function GroupOrganizerPage() {
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-7 py-9 pb-20">
       <header className="flex justify-between items-center mb-6">
-        <a href="/" className="font-serif font-semibold text-[22px] text-ink">
-          Fast<b className="text-clay">·</b>Track
-        </a>
+        <Wordmark />
         <span className="text-[13px] text-muted">
           organizing as <b className="text-ink font-semibold">you</b>
         </span>
