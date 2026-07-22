@@ -26,6 +26,10 @@ export default function GroupReportPage() {
   const [scope, setScope] = useState<'me' | 'all'>('me');
 
   const me = group?.participants.find(p => p.id === group.participantId);
+  const myLastCheckin =
+    me && me.entries.length > 0
+      ? [...me.entries].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0]
+      : null;
 
   // Remember this report link in the browser
   useEffect(() => {
@@ -230,6 +234,7 @@ export default function GroupReportPage() {
           onClose={() => setShowCheckin(false)}
           heading="How are you, right now?"
           subheading={`reporting into ${group.name}`}
+          previous={myLastCheckin}
         />
       )}
 

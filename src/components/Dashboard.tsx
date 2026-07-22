@@ -315,6 +315,7 @@ const Dashboard: React.FC<DashboardProps> = ({
           onSubmit={onAddCheckin}
           onClose={() => setShowCheckinForm(false)}
           subheading={`${dayLabel} of ${session.name}`}
+          previous={latest}
         />
       )}
 

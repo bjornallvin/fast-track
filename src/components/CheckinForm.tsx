@@ -10,50 +10,45 @@ interface CheckinFormProps {
   heading?: string;
   subheading?: string;
   status?: { ok: boolean; text: string } | null; // shown right at the save button
+  previous?: CheckinEntry | null; // last check-in — pre-fills values and marks them on the scales
 }
 
 const SCALE_FIELDS: {
   key: 'energy' | 'hunger' | 'mentalClarity' | 'mood' | 'physicalComfort';
   label: string;
-  low: string;
-  high: string;
+  words: [string, string, string, string, string, string, string, string, string, string];
   hint: string;
   clay?: boolean;
 }[] = [
   {
     key: 'energy',
     label: 'Energy',
-    low: 'drained',
-    high: 'wired',
+    words: ['drained', 'exhausted', 'sluggish', 'low', 'steady', 'fresh', 'lively', 'energized', 'buzzing', 'wired'],
     hint: 'Your overall energy level and ability to perform daily activities',
   },
   {
     key: 'hunger',
     label: 'Hunger',
-    low: 'satisfied',
-    high: 'ravenous',
+    words: ['satisfied', 'content', 'quiet', 'peckish', 'noticeable', 'hungry', 'growling', 'gnawing', 'intense', 'ravenous'],
     clay: true,
     hint: 'How strong your hunger sensations are (1 = none, 10 = extreme)',
   },
   {
     key: 'mentalClarity',
     label: 'Mental clarity',
-    low: 'foggy',
-    high: 'sharp',
+    words: ['foggy', 'hazy', 'dull', 'scattered', 'okay', 'clearing', 'clear', 'focused', 'crisp', 'sharp'],
     hint: 'Your ability to think clearly, focus, and concentrate',
   },
   {
     key: 'mood',
     label: 'Mood',
-    low: 'low',
-    high: 'bright',
+    words: ['low', 'down', 'flat', 'meh', 'even', 'fine', 'good', 'upbeat', 'great', 'bright'],
     hint: 'Your emotional state and overall feeling of well-being',
   },
   {
     key: 'physicalComfort',
     label: 'Physical comfort',
-    low: 'uncomfortable',
-    high: 'at ease',
+    words: ['miserable', 'hurting', 'achy', 'uneasy', 'okay', 'fine', 'comfortable', 'settled', 'relaxed', 'at ease'],
     hint: 'Your physical comfort level — absence of pain or discomfort',
   },
 ];
@@ -66,13 +61,16 @@ const CheckinForm: React.FC<CheckinFormProps> = ({
   heading = 'How are you, right now?',
   subheading,
   status,
+  previous,
 }) => {
+  // Start from the previous check-in when there is one — reporting a change
+  // is easier than producing a fresh number.
   const [formData, setFormData] = useState({
-    energy: 5,
-    hunger: 5,
-    mentalClarity: 5,
-    mood: 5,
-    physicalComfort: 5,
+    energy: previous?.energy ?? 5,
+    hunger: previous?.hunger ?? 5,
+    mentalClarity: previous?.mentalClarity ?? 5,
+    mood: previous?.mood ?? 5,
+    physicalComfort: previous?.physicalComfort ?? 5,
     note: '',
   });
 
@@ -93,44 +91,56 @@ const CheckinForm: React.FC<CheckinFormProps> = ({
       </div>
 
       <div className="mt-4 space-y-3">
-        {SCALE_FIELDS.map(field => (
-          <div key={field.key}>
-            <div className="flex justify-between items-baseline mb-1.5">
-              <span className="font-semibold text-[15px] cursor-help" title={field.hint}>
-                {field.label}
-              </span>
-              <span className="font-serif font-medium text-2xl text-clay" style={{ fontVariantNumeric: 'tabular-nums' }}>
-                {formData[field.key]}
-                <span className="text-sm text-muted font-sans">/10</span>
-              </span>
+        {SCALE_FIELDS.map(field => {
+          const selected = formData[field.key];
+          const prevValue = previous?.[field.key];
+          return (
+            <div key={field.key}>
+              <div className="flex justify-between items-baseline mb-1.5">
+                <span className="font-semibold text-[15px] cursor-help" title={field.hint}>
+                  {field.label}
+                </span>
+                <span className="font-serif font-medium text-2xl text-clay" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                  <span className="text-sm italic font-normal mr-1.5">{field.words[selected - 1]}</span>
+                  {selected}
+                  <span className="text-sm text-muted font-sans">/10</span>
+                </span>
+              </div>
+              <div className="flex gap-1.5">
+                {Array.from({ length: 10 }, (_, i) => i + 1).map(value => {
+                  const on = selected === value;
+                  const wasPrev = prevValue === value;
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      title={field.words[value - 1]}
+                      onClick={() => setFormData({ ...formData, [field.key]: value })}
+                      className={`flex-1 h-9 rounded-lg text-[15px] font-medium cursor-pointer transition-colors ${
+                        on
+                          ? field.clay
+                            ? 'bg-clay border-[1.5px] border-clay text-white font-semibold'
+                            : 'bg-sage border-[1.5px] border-sage text-white font-semibold'
+                          : wasPrev
+                            ? 'bg-card border-[1.5px] border-dashed border-muted text-ink hover:border-ink'
+                            : 'bg-card border-[1.5px] border-line text-muted hover:border-muted'
+                      }`}
+                    >
+                      {value}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="flex justify-between text-[11px] text-muted mt-0.5 font-serif italic leading-none">
+                <span>{field.words[0]}</span>
+                {prevValue !== undefined && (
+                  <span>last time: {prevValue}</span>
+                )}
+                <span>{field.words[9]}</span>
+              </div>
             </div>
-            <div className="flex gap-1.5">
-              {Array.from({ length: 10 }, (_, i) => i + 1).map(value => {
-                const on = formData[field.key] === value;
-                return (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => setFormData({ ...formData, [field.key]: value })}
-                    className={`flex-1 h-9 rounded-lg border-[1.5px] text-[15px] font-medium cursor-pointer transition-colors ${
-                      on
-                        ? field.clay
-                          ? 'bg-clay border-clay text-white font-semibold'
-                          : 'bg-sage border-sage text-white font-semibold'
-                        : 'bg-card border-line text-muted hover:border-muted'
-                    }`}
-                  >
-                    {value}
-                  </button>
-                );
-              })}
-            </div>
-            <div className="flex justify-between text-[11px] text-muted mt-0.5 font-serif italic leading-none">
-              <span>{field.low}</span>
-              <span>{field.high}</span>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="mt-5">
