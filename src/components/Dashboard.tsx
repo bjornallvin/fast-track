@@ -60,6 +60,47 @@ const Dashboard: React.FC<DashboardProps> = ({
 }) => {
   const [showCheckinForm, setShowCheckinForm] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
+  const [editingCheckin, setEditingCheckin] = useState<CheckinEntry | null>(null);
+
+  const submitCheckin = (entry: Omit<CheckinEntry, 'id' | 'timestamp'>) => {
+    if (editingCheckin && session) {
+      onUpdateSession?.({
+        entries: session.entries.map(e =>
+          e.id === editingCheckin.id
+            ? { ...entry, id: editingCheckin.id, timestamp: editingCheckin.timestamp }
+            : e
+        ),
+      });
+      setEditingCheckin(null);
+    } else {
+      onAddCheckin(entry);
+    }
+  };
+  const openEditCheckin = (id: string) => {
+    const e = session?.entries.find(x => x.id === id);
+    if (e) {
+      setEditingCheckin(e);
+      setShowCheckinForm(true);
+    }
+  };
+  const deleteCheckin = (id: string) => {
+    if (session) onUpdateSession?.({ entries: session.entries.filter(e => e.id !== id) });
+  };
+  const deleteBody = (id: string) => {
+    if (session) onUpdateSession?.({ bodyMetrics: session.bodyMetrics.filter(m => m.id !== id) });
+  };
+  const editBody = (id: string, metric: Omit<BodyMetric, 'id' | 'timestamp'>) => {
+    if (session)
+      onUpdateSession?.({
+        bodyMetrics: session.bodyMetrics.map(m =>
+          m.id === id ? { ...metric, id, timestamp: m.timestamp } : m
+        ),
+      });
+  };
+  const closeCheckin = () => {
+    setShowCheckinForm(false);
+    setEditingCheckin(null);
+  };
 
   const latest = useMemo(() => {
     if (!session || session.entries.length === 0) return null;
@@ -259,7 +300,12 @@ const Dashboard: React.FC<DashboardProps> = ({
           </div>{/* end left column */}
 
           <div className="mt-9 lg:mt-0 space-y-6">
-            <ProgressChart entries={session.entries} startTime={session.startTime} />
+            <ProgressChart
+              entries={session.entries}
+              startTime={session.startTime}
+              onEditPoint={onUpdateSession ? openEditCheckin : undefined}
+              onDeletePoint={onUpdateSession ? deleteCheckin : undefined}
+            />
             {session.entries.some(e => e.note) && (
               <div className="bg-card border border-line rounded-2xl px-5 py-5">
                 <h3 className="font-serif font-medium text-lg mb-3">Check-in notes</h3>
@@ -278,7 +324,12 @@ const Dashboard: React.FC<DashboardProps> = ({
                 </div>
               </div>
             )}
-            <BodyMetrics metrics={session.bodyMetrics} onAddMetric={onAddBodyMetric} />
+            <BodyMetrics
+              metrics={session.bodyMetrics}
+              onAddMetric={onAddBodyMetric}
+              onEditMetric={onUpdateSession ? editBody : undefined}
+              onDeleteMetric={onUpdateSession ? deleteBody : undefined}
+            />
             <Journal entries={session.notes} onAddEntry={onAddJournalEntry} />
           </div>
           </div>{/* end two-column grid */}
@@ -318,10 +369,15 @@ const Dashboard: React.FC<DashboardProps> = ({
 
       {showCheckinForm && session && (
         <CheckinForm
-          onSubmit={onAddCheckin}
-          onClose={() => setShowCheckinForm(false)}
-          subheading={`${dayLabel} of ${session.name}`}
-          previous={latest}
+          onSubmit={submitCheckin}
+          onClose={closeCheckin}
+          heading={editingCheckin ? 'Edit check-in' : undefined}
+          subheading={
+            editingCheckin ? 'fix a mistake — this replaces the entry' : `${dayLabel} of ${session.name}`
+          }
+          previous={editingCheckin ? null : latest}
+          initial={editingCheckin}
+          submitLabel={editingCheckin ? 'Save changes' : undefined}
         />
       )}
 

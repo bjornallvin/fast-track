@@ -26,6 +26,8 @@ export default function GroupReportPage() {
   const [showCheckin, setShowCheckin] = useState(false);
   const [showBody, setShowBody] = useState(false);
   const [scope, setScope] = useState<'me' | 'all'>('me');
+  const [editingCheckin, setEditingCheckin] = useState<CheckinEntry | null>(null);
+  const [editingBody, setEditingBody] = useState<BodyMetric | null>(null);
 
   const me = group?.participants.find(p => p.id === group.participantId);
   const myLastCheckin =
@@ -67,32 +69,90 @@ export default function GroupReportPage() {
     return false;
   };
 
+  const patch = async (payload: Record<string, unknown>) => {
+    if (!group?.participantId) return false;
+    const response = await fetch(
+      `/api/groups/${groupId}/participants/${group.participantId}`,
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, ...payload }),
+      }
+    );
+    if (response.ok) {
+      await refresh();
+      return true;
+    }
+    return false;
+  };
+
   const handleCheckin = async (entry: Omit<CheckinEntry, 'id' | 'timestamp'>) => {
-    await report({
-      checkin: { ...entry, id: generateId(), timestamp: new Date() },
-    });
+    if (editingCheckin) {
+      await patch({
+        editCheckin: { ...entry, id: editingCheckin.id, timestamp: editingCheckin.timestamp },
+      });
+      setEditingCheckin(null);
+    } else {
+      await report({ checkin: { ...entry, id: generateId(), timestamp: new Date() } });
+    }
   };
 
   const handleBodyMetric = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!weight && !bodyFat) return;
-    const ok = await report({
-      bodyMetric: {
-        id: generateId(),
-        timestamp: new Date(),
-        ...(weight ? { weight: Number(weight) } : {}),
-        ...(bodyFat ? { bodyFatPercentage: Number(bodyFat) } : {}),
-      },
-    });
+    const fields = {
+      ...(weight ? { weight: Number(weight) } : {}),
+      ...(bodyFat ? { bodyFatPercentage: Number(bodyFat) } : {}),
+    };
+    const ok = editingBody
+      ? await patch({
+          editBodyMetric: { id: editingBody.id, timestamp: editingBody.timestamp, ...fields },
+        })
+      : await report({ bodyMetric: { id: generateId(), timestamp: new Date(), ...fields } });
     if (ok) {
       setWeight('');
       setBodyFat('');
       setShowBody(false);
+      setEditingBody(null);
       setBodyStatus(null);
     } else {
       setBodyStatus({ ok: false, text: 'Failed to save. Please try again.' });
     }
   };
+
+  const openEditCheckin = (entry: CheckinEntry) => {
+    setEditingCheckin(entry);
+    setShowCheckin(true);
+  };
+  const openEditBody = (metric: BodyMetric) => {
+    setEditingBody(metric);
+    setWeight(metric.weight != null ? String(metric.weight) : '');
+    setBodyFat(metric.bodyFatPercentage != null ? String(metric.bodyFatPercentage) : '');
+    setShowBody(true);
+  };
+  const closeCheckin = () => {
+    setShowCheckin(false);
+    setEditingCheckin(null);
+  };
+  const closeBody = () => {
+    setShowBody(false);
+    setEditingBody(null);
+    setWeight('');
+    setBodyFat('');
+  };
+  const deleteCheckin = (id: string) => patch({ deleteCheckinId: id });
+  const deleteBody = (id: string) => patch({ deleteBodyMetricId: id });
+  const editPoint = (kind: 'checkin' | 'body', id: string) => {
+    if (kind === 'checkin') {
+      const e = me?.entries.find(x => x.id === id);
+      if (e) openEditCheckin(e);
+    } else {
+      const m = me?.bodyMetrics.find(x => x.id === id);
+      if (m) openEditBody(m);
+    }
+  };
+  const deletePoint = (kind: 'checkin' | 'body', id: string) =>
+    kind === 'checkin' ? deleteCheckin(id) : deleteBody(id);
 
   if (loading) {
     return (
@@ -215,7 +275,12 @@ export default function GroupReportPage() {
           </button>
         </div>
       </div>
-      <GroupComparisonChart group={chartGroup} />
+      <GroupComparisonChart
+        group={chartGroup}
+        editableParticipantId={me.id}
+        onEditPoint={editPoint}
+        onDeletePoint={deletePoint}
+      />
 
       {/* Roster */}
       <h3 className="font-serif font-medium text-lg mt-8 mb-3 flex items-center gap-3 after:content-[''] after:flex-1 after:h-px after:bg-line">
@@ -229,30 +294,38 @@ export default function GroupReportPage() {
         </Link>
       </div>
 
-      {/* Check-in popup */}
-      {showCheckin && canReport && (
+      {/* Check-in popup — also opens for editing, even when the fast is inactive */}
+      {showCheckin && (canReport || editingCheckin) && (
         <CheckinForm
           onSubmit={handleCheckin}
-          onClose={() => setShowCheckin(false)}
-          heading="How are you, right now?"
-          subheading={`reporting into ${group.name}`}
-          previous={myLastCheckin}
+          onClose={closeCheckin}
+          heading={editingCheckin ? 'Edit check-in' : 'How are you, right now?'}
+          subheading={
+            editingCheckin
+              ? 'fix a mistake — this replaces the entry'
+              : `reporting into ${group.name}`
+          }
+          previous={editingCheckin ? null : myLastCheckin}
+          initial={editingCheckin}
+          submitLabel={editingCheckin ? 'Save changes' : undefined}
         />
       )}
 
-      {/* Log weight popup */}
-      {showBody && canReport && (
+      {/* Log weight popup — also opens for editing */}
+      {showBody && (canReport || editingBody) && (
         <div
           className="fixed inset-0 flex items-center justify-center p-4 z-50"
           style={{ backgroundColor: 'rgba(44, 38, 32, 0.55)' }}
-          onClick={() => setShowBody(false)}
+          onClick={closeBody}
         >
           <form
             onSubmit={handleBodyMetric}
             onClick={e => e.stopPropagation()}
             className="bg-paper rounded-2xl shadow-xl p-6 sm:p-8 w-full max-w-md"
           >
-            <h2 className="font-serif font-medium text-2xl tracking-tight mb-5">Log weight</h2>
+            <h2 className="font-serif font-medium text-2xl tracking-tight mb-5">
+              {editingBody ? 'Edit weight log' : 'Log weight'}
+            </h2>
             <div className="flex gap-3 items-end flex-wrap mb-2">
               <div className="flex-1 min-w-[120px]">
                 <label className="block text-sm text-muted mb-1" htmlFor="body-weight">
@@ -300,7 +373,7 @@ export default function GroupReportPage() {
               </button>
               <button
                 type="button"
-                onClick={() => setShowBody(false)}
+                onClick={closeBody}
                 className="px-6 rounded-xl border border-line bg-card text-ink font-semibold cursor-pointer hover:border-muted"
               >
                 Cancel

@@ -16,6 +16,9 @@ import { formatSwedishDateTime } from '../utils/dateFormat';
 interface ProgressChartProps {
   entries: CheckinEntry[];
   startTime?: Date; // when given, plot by hours into the fast
+  // When set, clicking a point opens an edit/delete menu for that check-in.
+  onEditPoint?: (id: string) => void;
+  onDeletePoint?: (id: string) => void;
 }
 
 const METRICS = [
@@ -26,14 +29,21 @@ const METRICS = [
   { key: 'physicalComfort', label: 'Comfort', color: '#4a6b8a' },
 ] as const;
 
-const ProgressChart: React.FC<ProgressChartProps> = ({ entries, startTime }) => {
+const ProgressChart: React.FC<ProgressChartProps> = ({
+  entries,
+  startTime,
+  onEditPoint,
+  onDeletePoint,
+}) => {
   const [hoveredMetric, setHoveredMetric] = useState<string | null>(null);
+  const [menu, setMenu] = useState<{ x: number; y: number; id: string } | null>(null);
 
   const data = useMemo(() => {
     const sorted = [...entries].sort(
       (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
     );
     return sorted.map(entry => ({
+      id: entry.id,
       time: startTime
         ? Math.round(
             ((new Date(entry.timestamp).getTime() - startTime.getTime()) / 3600000) * 10
@@ -46,6 +56,31 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ entries, startTime }) => 
       physicalComfort: entry.physicalComfort,
     }));
   }, [entries, startTime]);
+
+  const EditableDot = (props: {
+    cx?: number;
+    cy?: number;
+    fill?: string;
+    payload?: { id: string };
+  }) => {
+    const { cx, cy, fill, payload } = props;
+    if (cx == null || cy == null || !payload) return <g />;
+    return (
+      <circle
+        cx={cx}
+        cy={cy}
+        r={5}
+        fill={fill}
+        stroke="var(--paper)"
+        strokeWidth={1.5}
+        style={{ cursor: 'pointer' }}
+        onClick={e => {
+          e.stopPropagation();
+          setMenu({ x: e.clientX, y: e.clientY, id: payload.id });
+        }}
+      />
+    );
+  };
 
   return (
     <div className="bg-card border border-line rounded-2xl px-5 py-5">
@@ -108,13 +143,48 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ entries, startTime }) => 
                 name={m.label}
                 strokeWidth={hoveredMetric === m.key ? 4 : 3}
                 opacity={hoveredMetric && hoveredMetric !== m.key ? 0.25 : 1}
-                dot={{ r: 3, strokeWidth: 0, fill: m.color }}
+                dot={onEditPoint ? <EditableDot fill={m.color} /> : { r: 3, strokeWidth: 0, fill: m.color }}
+                activeDot={{ r: onEditPoint ? 6 : 4 }}
                 strokeLinejoin="round"
                 isAnimationActive={false}
               />
             ))}
           </LineChart>
         </ResponsiveContainer>
+      )}
+      {onEditPoint && entries.length > 0 && (
+        <p className="text-xs text-muted font-serif italic mt-2">
+          tip: tap a point to edit or delete that check-in
+        </p>
+      )}
+
+      {menu && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setMenu(null)} />
+          <div
+            className="fixed z-50 bg-paper border border-line rounded-xl shadow-lg overflow-hidden text-sm min-w-[120px]"
+            style={{ top: menu.y + 6, left: menu.x + 6 }}
+          >
+            <button
+              onClick={() => {
+                onEditPoint?.(menu.id);
+                setMenu(null);
+              }}
+              className="block w-full text-left px-4 py-2.5 hover:bg-card cursor-pointer"
+            >
+              Edit
+            </button>
+            <button
+              onClick={() => {
+                onDeletePoint?.(menu.id);
+                setMenu(null);
+              }}
+              className="block w-full text-left px-4 py-2.5 text-clay hover:bg-card cursor-pointer border-t border-line"
+            >
+              Delete
+            </button>
+          </div>
+        </>
       )}
     </div>
   );

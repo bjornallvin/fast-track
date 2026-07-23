@@ -11,6 +11,8 @@ interface CheckinFormProps {
   subheading?: string;
   status?: { ok: boolean; text: string } | null; // shown right at the save button
   previous?: CheckinEntry | null; // last check-in — pre-fills values and marks them on the scales
+  initial?: CheckinEntry | null; // editing an existing check-in — pre-fills values AND note
+  submitLabel?: string;
 }
 
 const SCALE_FIELDS: {
@@ -62,16 +64,18 @@ const CheckinForm: React.FC<CheckinFormProps> = ({
   subheading,
   status,
   previous,
+  initial,
+  submitLabel,
 }) => {
-  // Start from the previous check-in when there is one — reporting a change
-  // is easier than producing a fresh number.
+  // When editing, start from that entry (values + note). Otherwise start from
+  // the previous check-in — reporting a change is easier than a fresh number.
   const [formData, setFormData] = useState({
-    energy: previous?.energy ?? 5,
-    hunger: previous?.hunger ?? 5,
-    mentalClarity: previous?.mentalClarity ?? 5,
-    mood: previous?.mood ?? 5,
-    physicalComfort: previous?.physicalComfort ?? 5,
-    note: '',
+    energy: initial?.energy ?? previous?.energy ?? 5,
+    hunger: initial?.hunger ?? previous?.hunger ?? 5,
+    mentalClarity: initial?.mentalClarity ?? previous?.mentalClarity ?? 5,
+    mood: initial?.mood ?? previous?.mood ?? 5,
+    physicalComfort: initial?.physicalComfort ?? previous?.physicalComfort ?? 5,
+    note: initial?.note ?? '',
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -164,7 +168,7 @@ const CheckinForm: React.FC<CheckinFormProps> = ({
           type="submit"
           className="flex-1 bg-clay text-white rounded-2xl py-4 font-semibold text-base cursor-pointer shadow-[0_6px_18px_rgba(181,100,63,.25)] hover:opacity-90"
         >
-          Save check-in
+          {submitLabel ?? 'Save check-in'}
         </button>
         {onClose && (
           <button

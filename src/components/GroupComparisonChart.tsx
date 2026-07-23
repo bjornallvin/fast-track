@@ -33,14 +33,27 @@ const METRICS: { key: MetricKey; label: string; title: string; body?: boolean }[
 
 interface GroupComparisonChartProps {
   group: GroupSessionPublic;
+  // When set, clicking a point on THIS participant's line opens an edit/delete menu.
+  editableParticipantId?: string;
+  onEditPoint?: (kind: 'checkin' | 'body', id: string) => void;
+  onDeletePoint?: (kind: 'checkin' | 'body', id: string) => void;
 }
 
 // One shared timeline: everyone's points plot by hours-into-fast against the
 // group's single start time. One line per participant for the chosen metric.
-const GroupComparisonChart: React.FC<GroupComparisonChartProps> = ({ group }) => {
+const GroupComparisonChart: React.FC<GroupComparisonChartProps> = ({
+  group,
+  editableParticipantId,
+  onEditPoint,
+  onDeletePoint,
+}) => {
   const [metric, setMetric] = useState<MetricKey>('hunger');
+  const [menu, setMenu] = useState<{ x: number; y: number; id: string; kind: 'checkin' | 'body' } | null>(
+    null
+  );
   const def = METRICS.find(m => m.key === metric)!;
   const start = group.startTime.getTime();
+  const kind: 'checkin' | 'body' = def.body ? 'body' : 'checkin';
 
   const series = useMemo(() => {
     return group.participants.map(p => {
@@ -53,9 +66,10 @@ const GroupComparisonChart: React.FC<GroupComparisonChartProps> = ({ group }) =>
             hour:
               Math.round(((new Date(item.timestamp).getTime() - start) / 3600000) * 10) / 10,
             value: value as number,
+            id: (item as { id: string }).id,
           };
         })
-        .filter((pt): pt is { hour: number; value: number } => pt !== null && pt.hour >= 0)
+        .filter((pt): pt is { hour: number; value: number; id: string } => pt !== null && pt.hour >= 0)
         .sort((a, b) => a.hour - b.hour);
       return { participant: p, points };
     });
@@ -69,6 +83,32 @@ const GroupComparisonChart: React.FC<GroupComparisonChartProps> = ({ group }) =>
   }, [group.endTime, start]);
 
   const hasAnyData = series.some(s => s.points.length > 0);
+
+  // Clickable dot for the editable participant's line — opens the edit/delete menu.
+  const EditableDot = (props: {
+    cx?: number;
+    cy?: number;
+    fill?: string;
+    payload?: { id: string };
+  }) => {
+    const { cx, cy, fill, payload } = props;
+    if (cx == null || cy == null || !payload) return <g />;
+    return (
+      <circle
+        cx={cx}
+        cy={cy}
+        r={5}
+        fill={fill}
+        stroke="var(--paper)"
+        strokeWidth={1.5}
+        style={{ cursor: 'pointer' }}
+        onClick={e => {
+          e.stopPropagation();
+          setMenu({ x: e.clientX, y: e.clientY, id: payload.id, kind });
+        }}
+      />
+    );
+  };
 
   return (
     <div>
@@ -126,20 +166,29 @@ const GroupComparisonChart: React.FC<GroupComparisonChartProps> = ({ group }) =>
               />
               {series
                 .filter(s => s.points.length > 0)
-                .map(s => (
-                  <Line
-                    key={s.participant.id}
-                    data={s.points}
-                    dataKey="value"
-                    name={s.participant.name}
-                    stroke={s.participant.color ?? 'var(--ink)'}
-                    strokeWidth={3}
-                    strokeLinejoin="round"
-                    dot={{ r: 3, strokeWidth: 0, fill: s.participant.color ?? 'var(--ink)' }}
-                    type="monotone"
-                    isAnimationActive={false}
-                  />
-                ))}
+                .map(s => {
+                  const editable = !!onEditPoint && s.participant.id === editableParticipantId;
+                  const color = s.participant.color ?? 'var(--ink)';
+                  return (
+                    <Line
+                      key={s.participant.id}
+                      data={s.points}
+                      dataKey="value"
+                      name={s.participant.name}
+                      stroke={color}
+                      strokeWidth={3}
+                      strokeLinejoin="round"
+                      dot={
+                        editable
+                          ? <EditableDot fill={color} />
+                          : { r: 3, strokeWidth: 0, fill: color }
+                      }
+                      activeDot={{ r: editable ? 6 : 4 }}
+                      type="monotone"
+                      isAnimationActive={false}
+                    />
+                  );
+                })}
             </LineChart>
           </ResponsiveContainer>
         )}
@@ -157,7 +206,41 @@ const GroupComparisonChart: React.FC<GroupComparisonChartProps> = ({ group }) =>
             </span>
           ))}
         </div>
+        {onEditPoint && hasAnyData && (
+          <p className="text-xs text-muted font-serif italic mt-2">
+            tip: tap one of your points to edit or delete it
+          </p>
+        )}
       </div>
+
+      {menu && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setMenu(null)} />
+          <div
+            className="fixed z-50 bg-paper border border-line rounded-xl shadow-lg overflow-hidden text-sm min-w-[120px]"
+            style={{ top: menu.y + 6, left: menu.x + 6 }}
+          >
+            <button
+              onClick={() => {
+                onEditPoint?.(menu.kind, menu.id);
+                setMenu(null);
+              }}
+              className="block w-full text-left px-4 py-2.5 hover:bg-card cursor-pointer"
+            >
+              Edit
+            </button>
+            <button
+              onClick={() => {
+                onDeletePoint?.(menu.kind, menu.id);
+                setMenu(null);
+              }}
+              className="block w-full text-left px-4 py-2.5 text-clay hover:bg-card cursor-pointer border-t border-line"
+            >
+              Delete
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 };
