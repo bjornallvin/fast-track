@@ -65,20 +65,18 @@ const ProgressChart: React.FC<ProgressChartProps> = ({
   }) => {
     const { cx, cy, fill, payload } = props;
     if (cx == null || cy == null || !payload) return <g />;
+    const id = payload.id;
     return (
-      <circle
-        cx={cx}
-        cy={cy}
-        r={5}
-        fill={fill}
-        stroke="var(--paper)"
-        strokeWidth={1.5}
+      <g
         style={{ cursor: 'pointer' }}
         onClick={e => {
           e.stopPropagation();
-          setMenu({ x: e.clientX, y: e.clientY, id: payload.id });
+          setMenu({ x: e.clientX, y: e.clientY, id });
         }}
-      />
+      >
+        <circle cx={cx} cy={cy} r={16} fill="transparent" />
+        <circle cx={cx} cy={cy} r={5} fill={fill} stroke="var(--paper)" strokeWidth={1.5} />
+      </g>
     );
   };
 
@@ -144,7 +142,7 @@ const ProgressChart: React.FC<ProgressChartProps> = ({
                 strokeWidth={hoveredMetric === m.key ? 4 : 3}
                 opacity={hoveredMetric && hoveredMetric !== m.key ? 0.25 : 1}
                 dot={onEditPoint ? <EditableDot fill={m.color} /> : { r: 3, strokeWidth: 0, fill: m.color }}
-                activeDot={{ r: onEditPoint ? 6 : 4 }}
+                activeDot={onEditPoint ? <EditableDot fill={m.color} /> : { r: 4 }}
                 strokeLinejoin="round"
                 isAnimationActive={false}
               />

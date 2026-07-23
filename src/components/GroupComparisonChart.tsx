@@ -84,7 +84,9 @@ const GroupComparisonChart: React.FC<GroupComparisonChartProps> = ({
 
   const hasAnyData = series.some(s => s.points.length > 0);
 
-  // Clickable dot for the editable participant's line — opens the edit/delete menu.
+  // Clickable dot for the editable participant's line — opens the edit/delete
+  // menu. Rendered for both `dot` and `activeDot` (the active dot sits on top,
+  // so it must carry the handler too), with a large transparent hit target.
   const EditableDot = (props: {
     cx?: number;
     cy?: number;
@@ -93,20 +95,18 @@ const GroupComparisonChart: React.FC<GroupComparisonChartProps> = ({
   }) => {
     const { cx, cy, fill, payload } = props;
     if (cx == null || cy == null || !payload) return <g />;
+    const id = payload.id;
     return (
-      <circle
-        cx={cx}
-        cy={cy}
-        r={5}
-        fill={fill}
-        stroke="var(--paper)"
-        strokeWidth={1.5}
+      <g
         style={{ cursor: 'pointer' }}
         onClick={e => {
           e.stopPropagation();
-          setMenu({ x: e.clientX, y: e.clientY, id: payload.id, kind });
+          setMenu({ x: e.clientX, y: e.clientY, id, kind });
         }}
-      />
+      >
+        <circle cx={cx} cy={cy} r={16} fill="transparent" />
+        <circle cx={cx} cy={cy} r={5} fill={fill} stroke="var(--paper)" strokeWidth={1.5} />
+      </g>
     );
   };
 
@@ -183,7 +183,7 @@ const GroupComparisonChart: React.FC<GroupComparisonChartProps> = ({
                           ? <EditableDot fill={color} />
                           : { r: 3, strokeWidth: 0, fill: color }
                       }
-                      activeDot={{ r: editable ? 6 : 4 }}
+                      activeDot={editable ? <EditableDot fill={color} /> : { r: 4 }}
                       type="monotone"
                       isAnimationActive={false}
                     />
