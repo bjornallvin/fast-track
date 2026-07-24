@@ -258,7 +258,7 @@ const Dashboard: React.FC<DashboardProps> = ({
           <div className="flex gap-3 mt-8 flex-wrap">
             <button
               onClick={() => setShowCheckinForm(true)}
-              disabled={!session.isActive || new Date(session.startTime).getTime() > Date.now()}
+              disabled={new Date(session.startTime).getTime() > Date.now()}
               title={
                 new Date(session.startTime).getTime() > Date.now()
                   ? 'Check-ins open when the fast starts'
@@ -290,6 +290,12 @@ const Dashboard: React.FC<DashboardProps> = ({
               </button>
             )}
           </div>
+          {!session.isActive && (
+            <p className="text-sm text-muted font-serif italic mt-3">
+              the fast has ended — keep checking in and logging weight to see
+              what happens after; new entries land in the “after the fast” zone
+            </p>
+          )}
 
           <FastingStageCard
             startTime={session.startTime}
@@ -303,6 +309,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             <ProgressChart
               entries={session.entries}
               startTime={session.startTime}
+              endTime={session.isActive ? null : session.endTime}
               onEditPoint={onUpdateSession ? openEditCheckin : undefined}
               onDeletePoint={onUpdateSession ? deleteCheckin : undefined}
             />
@@ -373,7 +380,11 @@ const Dashboard: React.FC<DashboardProps> = ({
           onClose={closeCheckin}
           heading={editingCheckin ? 'Edit check-in' : undefined}
           subheading={
-            editingCheckin ? 'fix a mistake — this replaces the entry' : `${dayLabel} of ${session.name}`
+            editingCheckin
+              ? 'fix a mistake — this replaces the entry'
+              : session.isActive
+                ? `${dayLabel} of ${session.name}`
+                : `after the fast — ${session.name}`
           }
           previous={editingCheckin ? null : latest}
           initial={editingCheckin}

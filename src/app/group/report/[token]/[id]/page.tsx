@@ -192,7 +192,9 @@ export default function GroupReportPage() {
 
   const ended = !!group.endTime;
   const notStarted = new Date(group.startTime).getTime() > Date.now();
-  const canReport = !ended && !notStarted;
+  // Logging stays open after the fast ends — post-fast check-ins and weight
+  // show what happens once eating resumes. Only a not-yet-started fast blocks.
+  const canLog = !notStarted;
   const chartGroup =
     scope === 'me'
       ? { ...group, participants: group.participants.filter(p => p.id === me.id) }
@@ -231,14 +233,14 @@ export default function GroupReportPage() {
       <div className="flex flex-wrap gap-3 mb-3">
         <button
           onClick={() => setShowCheckin(true)}
-          disabled={!canReport}
+          disabled={!canLog}
           className="flex-1 min-w-[150px] bg-clay text-white rounded-xl py-3 font-semibold cursor-pointer shadow-[0_6px_18px_rgba(181,100,63,.25)] hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           ＋ Check in
         </button>
         <button
           onClick={() => setShowBody(true)}
-          disabled={!canReport}
+          disabled={!canLog}
           className="flex-1 min-w-[130px] rounded-xl py-3 font-semibold border border-line bg-transparent cursor-pointer hover:border-sage hover:text-sage disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           Log weight
@@ -253,13 +255,16 @@ export default function GroupReportPage() {
           />
         )}
       </div>
-      {!canReport && (
+      {notStarted ? (
         <p className="text-sm text-muted font-serif italic mb-6">
-          {ended
-            ? 'the fast has ended — the charts below are the final story'
-            : 'the fast hasn’t started yet — check-ins open when the clock starts'}
+          the fast hasn’t started yet — check-ins open when the clock starts
         </p>
-      )}
+      ) : ended ? (
+        <p className="text-sm text-muted font-serif italic mb-6">
+          the fast has ended — keep checking in and logging weight to see what
+          happens after; new entries land in the “after the fast” zone
+        </p>
+      ) : null}
 
       <FastingStageCard startTime={group.startTime} endTime={group.endTime} className="mt-3" />
 
@@ -294,8 +299,8 @@ export default function GroupReportPage() {
         </Link>
       </div>
 
-      {/* Check-in popup — also opens for editing, even when the fast is inactive */}
-      {showCheckin && (canReport || editingCheckin) && (
+      {/* Check-in popup — also opens for editing, even before the fast starts */}
+      {showCheckin && (canLog || editingCheckin) && (
         <CheckinForm
           onSubmit={handleCheckin}
           onClose={closeCheckin}
@@ -303,7 +308,9 @@ export default function GroupReportPage() {
           subheading={
             editingCheckin
               ? 'fix a mistake — this replaces the entry'
-              : `reporting into ${group.name}`
+              : ended
+                ? `after the fast — reporting into ${group.name}`
+                : `reporting into ${group.name}`
           }
           previous={editingCheckin ? null : myLastCheckin}
           initial={editingCheckin}
@@ -312,7 +319,7 @@ export default function GroupReportPage() {
       )}
 
       {/* Log weight popup — also opens for editing */}
-      {showBody && (canReport || editingBody) && (
+      {showBody && (canLog || editingBody) && (
         <div
           className="fixed inset-0 flex items-center justify-center p-4 z-50"
           style={{ backgroundColor: 'rgba(44, 38, 32, 0.55)' }}

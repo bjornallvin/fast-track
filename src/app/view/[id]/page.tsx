@@ -247,7 +247,11 @@ export default function ViewSessionPage() {
       )}
 
       <div className="space-y-6">
-        <ProgressChart entries={session.entries} startTime={session.startTime} />
+        <ProgressChart
+          entries={session.entries}
+          startTime={session.startTime}
+          endTime={session.isActive ? null : session.endTime}
+        />
 
         {session.bodyMetrics.length > 0 && (
           <div className="bg-card border border-line rounded-2xl px-5 py-5">

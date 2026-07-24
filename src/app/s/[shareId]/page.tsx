@@ -136,7 +136,11 @@ export default function SharePage() {
           single.entries.length > 0 && (
             <div className="mb-6">
               <h3 className="font-serif font-medium text-lg mb-3">Wellbeing over the fast</h3>
-              <ProgressChart entries={single.entries} startTime={payload.startTime} />
+              <ProgressChart
+                entries={single.entries}
+                startTime={payload.startTime}
+                endTime={payload.endTime}
+              />
             </div>
           )
         ))}

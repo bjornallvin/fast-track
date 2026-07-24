@@ -8,6 +8,8 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  ReferenceArea,
+  ReferenceLine,
   ResponsiveContainer,
 } from 'recharts';
 import type { GroupSessionPublic } from '@/types';
@@ -75,12 +77,18 @@ const GroupComparisonChart: React.FC<GroupComparisonChartProps> = ({
     });
   }, [group.participants, def.key, def.body, start]);
 
+  // Hour-into-fast where the fast ended; post-fast points plot beyond it.
+  const endHour = group.endTime
+    ? Math.round(((group.endTime.getTime() - start) / 3600000) * 10) / 10
+    : null;
+
   const maxHour = useMemo(() => {
     const end = group.endTime
       ? group.endTime.getTime()
       : Math.max(Date.now(), start);
-    return Math.max((end - start) / 3600000, 1);
-  }, [group.endTime, start]);
+    const dataMax = Math.max(0, ...series.flatMap(s => s.points.map(pt => pt.hour)));
+    return Math.max((end - start) / 3600000, dataMax, 1);
+  }, [group.endTime, start, series]);
 
   const hasAnyData = series.some(s => s.points.length > 0);
 
@@ -155,7 +163,11 @@ const GroupComparisonChart: React.FC<GroupComparisonChartProps> = ({
                 width={40}
               />
               <Tooltip
-                labelFormatter={(h) => `${h}h into the fast`}
+                labelFormatter={(h) =>
+                  endHour !== null && Number(h) > endHour
+                    ? `${h}h — after the fast`
+                    : `${h}h into the fast`
+                }
                 contentStyle={{
                   background: 'var(--card)',
                   border: '1px solid var(--line)',
@@ -164,6 +176,39 @@ const GroupComparisonChart: React.FC<GroupComparisonChartProps> = ({
                   fontSize: 13,
                 }}
               />
+              {endHour !== null && (
+                <>
+                  <ReferenceArea
+                    x1={endHour}
+                    x2={Math.ceil(maxHour)}
+                    fill="var(--sage)"
+                    fillOpacity={0.08}
+                    label={
+                      maxHour > endHour * 1.05
+                        ? {
+                            value: 'after the fast',
+                            position: 'insideTopRight',
+                            fill: 'var(--muted)',
+                            fontSize: 11,
+                            fontStyle: 'italic',
+                          }
+                        : undefined
+                    }
+                  />
+                  <ReferenceLine
+                    x={endHour}
+                    stroke="var(--muted)"
+                    strokeDasharray="5 4"
+                    label={{
+                      value: 'fast ended',
+                      position: 'insideTopLeft',
+                      fill: 'var(--muted)',
+                      fontSize: 11,
+                      fontStyle: 'italic',
+                    }}
+                  />
+                </>
+              )}
               {series
                 .filter(s => s.points.length > 0)
                 .map(s => {

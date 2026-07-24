@@ -8,6 +8,8 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  ReferenceArea,
+  ReferenceLine,
   ResponsiveContainer,
 } from 'recharts';
 import type { CheckinEntry } from '../types';
@@ -16,6 +18,7 @@ import { formatSwedishDateTime } from '../utils/dateFormat';
 interface ProgressChartProps {
   entries: CheckinEntry[];
   startTime?: Date; // when given, plot by hours into the fast
+  endTime?: Date | null; // when given, mark where the fast ended (post-fast zone beyond)
   // When set, clicking a point opens an edit/delete menu for that check-in.
   onEditPoint?: (id: string) => void;
   onDeletePoint?: (id: string) => void;
@@ -32,6 +35,7 @@ const METRICS = [
 const ProgressChart: React.FC<ProgressChartProps> = ({
   entries,
   startTime,
+  endTime,
   onEditPoint,
   onDeletePoint,
 }) => {
@@ -56,6 +60,20 @@ const ProgressChart: React.FC<ProgressChartProps> = ({
       physicalComfort: entry.physicalComfort,
     }));
   }, [entries, startTime]);
+
+  // Hour-into-fast where the fast ended; check-ins after it are post-fast.
+  const endHour =
+    startTime && endTime
+      ? Math.round(((endTime.getTime() - startTime.getTime()) / 3600000) * 10) / 10
+      : null;
+  const maxHour = useMemo(() => {
+    if (!startTime) return 0;
+    const dataMax = Math.max(
+      0,
+      ...data.map(d => (typeof d.time === 'number' ? d.time : 0))
+    );
+    return Math.max(dataMax, endHour ?? 0, 1);
+  }, [startTime, data, endHour]);
 
   const EditableDot = (props: {
     cx?: number;
@@ -111,7 +129,7 @@ const ProgressChart: React.FC<ProgressChartProps> = ({
               <XAxis
                 type="number"
                 dataKey="time"
-                domain={[0, 'dataMax']}
+                domain={[0, Math.ceil(maxHour)]}
                 tickFormatter={(h: number) => `${h}h`}
                 stroke="var(--muted)"
                 fontSize={11}
@@ -122,7 +140,11 @@ const ProgressChart: React.FC<ProgressChartProps> = ({
             <YAxis domain={[0, 10]} stroke="var(--muted)" fontSize={11} width={40} />
             <Tooltip
               labelFormatter={label =>
-                startTime ? `${label}h into the fast` : String(label)
+                startTime
+                  ? endHour !== null && Number(label) > endHour
+                    ? `${label}h — after the fast`
+                    : `${label}h into the fast`
+                  : String(label)
               }
               contentStyle={{
                 background: 'var(--card)',
@@ -132,6 +154,39 @@ const ProgressChart: React.FC<ProgressChartProps> = ({
                 fontSize: 13,
               }}
             />
+            {endHour !== null && (
+              <>
+                <ReferenceArea
+                  x1={endHour}
+                  x2={Math.ceil(maxHour)}
+                  fill="var(--sage)"
+                  fillOpacity={0.08}
+                  label={
+                    maxHour > endHour * 1.05
+                      ? {
+                          value: 'after the fast',
+                          position: 'insideTopRight',
+                          fill: 'var(--muted)',
+                          fontSize: 11,
+                          fontStyle: 'italic',
+                        }
+                      : undefined
+                  }
+                />
+                <ReferenceLine
+                  x={endHour}
+                  stroke="var(--muted)"
+                  strokeDasharray="5 4"
+                  label={{
+                    value: 'fast ended',
+                    position: 'insideTopLeft',
+                    fill: 'var(--muted)',
+                    fontSize: 11,
+                    fontStyle: 'italic',
+                  }}
+                />
+              </>
+            )}
             {METRICS.map(m => (
               <Line
                 key={m.key}
